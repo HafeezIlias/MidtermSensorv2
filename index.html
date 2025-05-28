@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Sensor Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .card-icon {
+            font-size: 2rem;
+            margin-right: 15px;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            color: #666;
+        }
+
+        .card-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .card-status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .card-status.warning {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .card-status.alert {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .relay-button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .relay-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .charts-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .chart-container {
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        .time-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .time-button {
+            padding: 8px 16px;
+            border: 2px solid #667eea;
+            background: transparent;
+            color: #667eea;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .time-button.active,
+        .time-button:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .status-message {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ESP32 Sensor Monitor</h1>
+            <p>Real-time IoT Dashboard</p>
+        </div>
+
+        <div class="card-grid">
+            <!-- Temperature Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">🌡️</div>
+                    <div class="card-title">Temperature</div>
+                </div>
+                <div class="card-value" id="temp-value">--°C</div>
+                <div class="card-status" id="temp-status">Normal</div>
+            </div>
+
+            <!-- Humidity Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">💧</div>
+                    <div class="card-title">Humidity</div>
+                </div>
+                <div class="card-value" id="humidity-value">--%</div>
+                <div class="card-status" id="humidity-status">Normal</div>
+            </div>
+
+            <!-- Relay Control Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">🔌</div>
+                    <div class="card-title">Relay Status</div>
+                </div>
+                <div class="card-value" id="relay-value">OFF</div>
+                <button class="relay-button" id="toggle-relay" onclick="toggleRelay()">
+                    Toggle Relay
+                </button>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-section">
+            <h2>Historical Data</h2>
+            <div class="time-controls">
+                <button class="time-button active" onclick="loadChartData(1)">1 Hour</button>
+                <button class="time-button" onclick="loadChartData(6)">6 Hours</button>
+                <button class="time-button" onclick="loadChartData(24)">24 Hours</button>
+            </div>
+            <div class="chart-container">
+                <canvas id="sensor-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-message" id="status-message"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let sensorChart;
+        let updateInterval;
+
+        // Initialize chart
+        function initChart() {
+            const ctx = document.getElementById('sensor-chart').getContext('2d');
+            sensorChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Temperature (°C)',
+                            data: [],
+                            borderColor: '#ff6384',
+                            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Humidity (%)',
+                            data: [],
+                            borderColor: '#36a2eb',
+                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load chart data
+        function loadChartData(hours) {
+            document.querySelectorAll('.time-button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            fetch('api/get_historical.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `hours=${hours}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    const labels = data.data.map(item => new Date(item.timestamp).toLocaleTimeString());
+                    const tempData = data.data.map(item => parseFloat(item.temperature));
+                    const humidityData = data.data.map(item => parseFloat(item.humidity));
+
+                    sensorChart.data.labels = labels;
+                    sensorChart.data.datasets[0].data = tempData;
+                    sensorChart.data.datasets[1].data = humidityData;
+                    sensorChart.update();
+                }
+            })
+            .catch(error => showStatus('Error loading chart data'));
+        }
+
+        // Update latest data
+        function updateLatestData() {
+            fetch('api/get_latest.php', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    document.getElementById('temp-value').textContent = 
+                        parseFloat(data.data.temperature).toFixed(1) + '°C';
+                    document.getElementById('humidity-value').textContent = 
+                        parseFloat(data.data.humidity).toFixed(1) + '%';
+                    document.getElementById('relay-value').textContent = 
+                        data.data.relay_status.toUpperCase();
+                }
+            })
+            .catch(error => showStatus('Error updating data'));
+        }
+
+        // Toggle relay
+        function toggleRelay() {
+            const currentStatus = document.getElementById('relay-value').textContent;
+            
+            fetch('api/toggle_relay.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `current_status=${currentStatus}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('relay-value').textContent = data.new_status;
+                    showStatus(`Relay turned ${data.new_status}`);
+                }
+            })
+            .catch(error => showStatus('Error toggling relay'));
+        }
+
+        // Show status message
+        function showStatus(message) {
+            const status = document.getElementById('status-message');
+            status.textContent = message;
+            status.style.display = 'block';
+            setTimeout(() => status.style.display = 'none', 3000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initChart();
+            updateLatestData();
+            loadChartData(1);
+            updateInterval = setInterval(updateLatestData, 5000);
+        });
+
+        // Handle page visibility
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                clearInterval(updateInterval);
+            } else {
+                updateLatestData();
+                updateInterval = setInterval(updateLatestData, 5000);
+            }
+        });
+    </script>
+</body>
+</html>
