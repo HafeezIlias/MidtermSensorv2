@@ -4,7 +4,6 @@
 
 require_once '../../config.php';
 require_once '../../Database.php';
-require_once '../../SensorModel.php';
 
 header('Content-Type: application/json');
 
@@ -29,9 +28,6 @@ try {
         exit;
     }
     
-    // Initialize sensor model
-    $sensorModel = new SensorModel($pdo,);
-    
     // Get and validate parameters
     $deviceId = isset($_GET['device_id']) ? $_GET['device_id'] : null;
     $temperature = isset($_GET['temperature']) ? floatval($_GET['temperature']) : null;
@@ -44,8 +40,13 @@ try {
         exit;
     }
     
-    // Insert sensor data
-    $success = $sensorModel->insertSensorData($deviceId, $temperature, $humidity, $relayStatus);
+    // Insert sensor data directly
+    $stmt = $pdo->prepare("
+        INSERT INTO sensor_data 
+        (device_id, temperature, humidity, timestamp, relay_status) 
+        VALUES (?, ?, ?, NOW(), ?)
+    ");
+    $success = $stmt->execute([$deviceId, $temperature, $humidity, $relayStatus]);
     
     if (!$success) {
         http_response_code(500);
@@ -69,4 +70,4 @@ try {
     error_log("API Error - sensor_data: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(['error' => 'Internal server error']);
-} 
+}

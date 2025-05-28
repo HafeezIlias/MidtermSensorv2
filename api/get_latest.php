@@ -5,13 +5,12 @@
 // Include required files
 require_once '../config.php';
 require_once '../Database.php';
-require_once '../SensorModel.php';
 
 // Set content type for JSON responses
 header('Content-Type: application/json');
 
-// Only handle POST requests
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+// Handle both GET and POST requests
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);
     echo json_encode(['error' => 'Method not allowed']);
     exit;
@@ -31,17 +30,53 @@ try {
         exit;
     }
     
-    // Initialize sensor model
-    $sensorModel = new SensorModel($pdo,);
+    // Get device_id parameter
+    $deviceId = null;
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        $deviceId = isset($_GET['device_id']) ? trim($_GET['device_id']) : null;
+    } else {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $deviceId = isset($input['device_id']) ? trim($input['device_id']) : null;
+        
+        // Also check URL parameters for POST requests
+        if (!$deviceId && isset($_GET['device_id'])) {
+            $deviceId = trim($_GET['device_id']);
+        }
+    }
     
-    // Get latest data
-    $data = $sensorModel->getLatestData();
+    // Build query based on whether device_id is provided
+    if ($deviceId) {
+        $stmt = $pdo->prepare("
+            SELECT device_id, temperature, humidity, relay_status, timestamp 
+            FROM sensor_data 
+            WHERE device_id = ? 
+            ORDER BY timestamp DESC 
+            LIMIT 1
+        ");
+        $stmt->execute([$deviceId]);
+    } else {
+        $stmt = $pdo->prepare("
+            SELECT device_id, temperature, humidity, relay_status, timestamp 
+            FROM sensor_data 
+            ORDER BY timestamp DESC 
+            LIMIT 1
+        ");
+        $stmt->execute();
+    }
     
-    if ($data === null) {
+    $data = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$data) {
         http_response_code(404);
-        echo json_encode(['error' => 'No data found']);
+        echo json_encode([
+            'success' => false,
+            'error' => $deviceId ? 'No data found for device' : 'No data found'
+        ]);
         exit;
     }
+    
+    // Convert relay_status to boolean
+    $data['relay_status'] = (bool)$data['relay_status'];
     
     // Return success response
     echo json_encode([

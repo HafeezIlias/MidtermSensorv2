@@ -36,6 +36,47 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
+        .auto-refresh-indicator {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            margin-top: 10px;
+        }
+
+        .refresh-dot {
+            width: 8px;
+            height: 8px;
+            background: #4CAF50;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .device-selector {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .device-selector select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+        }
+
         .card-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -48,6 +89,11 @@
             border-radius: 15px;
             padding: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
         }
 
         .card-header {
@@ -78,8 +124,10 @@
             padding: 5px 15px;
             border-radius: 20px;
             font-size: 0.9rem;
+            font-weight: bold;
             background: #e8f5e8;
             color: #2e7d32;
+            transition: all 0.3s ease;
         }
 
         .card-status.warning {
@@ -90,6 +138,18 @@
         .card-status.alert {
             background: #ffebee;
             color: #c62828;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.7; }
+        }
+
+        .threshold-info {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
         }
 
         .relay-button {
@@ -110,6 +170,12 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
 
+        .relay-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .charts-section {
             background: white;
             border-radius: 15px;
@@ -126,6 +192,7 @@
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
 
         .time-button {
@@ -136,12 +203,41 @@
             border-radius: 20px;
             cursor: pointer;
             transition: all 0.3s ease;
+            font-size: 0.9rem;
         }
 
         .time-button.active,
         .time-button:hover {
             background: #667eea;
             color: white;
+        }
+
+        .auto-refresh-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .refresh-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .refresh-interval {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .refresh-interval select {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
         }
 
         .status-message {
@@ -154,6 +250,25 @@
             border-radius: 25px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
             display: none;
+            z-index: 1000;
+        }
+
+        .last-update {
+            font-size: 0.9rem;
+            color: #666;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .time-controls {
+                justify-content: center;
+            }
+            
+            .auto-refresh-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
         }
     </style>
 </head>
@@ -162,6 +277,18 @@
         <div class="header">
             <h1>ESP32 Sensor Monitor</h1>
             <p>Real-time IoT Dashboard</p>
+            <div class="auto-refresh-indicator">
+                <div class="refresh-dot"></div>
+                <span>Auto-refresh: <span id="refresh-status">ON</span></span>
+            </div>
+        </div>
+
+        <!-- Device Selector -->
+        <div class="device-selector">
+            <label for="device-select"><strong>Select Device:</strong></label>
+            <select id="device-select" onchange="changeDevice()">
+                <option value="">Loading devices...</option>
+            </select>
         </div>
 
         <div class="card-grid">
@@ -173,6 +300,7 @@
                 </div>
                 <div class="card-value" id="temp-value">--°C</div>
                 <div class="card-status" id="temp-status">Normal</div>
+                <div class="threshold-info" id="temp-threshold">Range: --°C to --°C</div>
             </div>
 
             <!-- Humidity Card -->
@@ -183,6 +311,7 @@
                 </div>
                 <div class="card-value" id="humidity-value">--%</div>
                 <div class="card-status" id="humidity-status">Normal</div>
+                <div class="threshold-info" id="humidity-threshold">Range: --% to --%</div>
             </div>
 
             <!-- Relay Control Card -->
@@ -201,13 +330,48 @@
         <!-- Charts Section -->
         <div class="charts-section">
             <h2>Historical Data</h2>
-            <div class="time-controls">
-                <button class="time-button active" onclick="loadChartData(1)">1 Hour</button>
-                <button class="time-button" onclick="loadChartData(6)">6 Hours</button>
-                <button class="time-button" onclick="loadChartData(24)">24 Hours</button>
+            
+            <!-- Auto-refresh Controls -->
+            <div class="auto-refresh-controls">
+                <div class="refresh-toggle">
+                    <label>
+                        <input type="checkbox" id="auto-refresh-checkbox" checked onchange="toggleAutoRefresh()">
+                        Auto-refresh
+                    </label>
+                </div>
+                <div class="refresh-interval">
+                    <label>Interval:</label>
+                    <select id="refresh-interval" onchange="updateRefreshInterval()">
+                        <option value="2000">2 seconds</option>
+                        <option value="5000" selected>5 seconds</option>
+                        <option value="10000">10 seconds</option>
+                        <option value="30000">30 seconds</option>
+                        <option value="60000">1 minute</option>
+                    </select>
+                </div>
+                <button onclick="manualRefresh()" style="padding: 8px 15px; border: none; background: #667eea; color: white; border-radius: 5px; cursor: pointer;">
+                    Refresh Now
+                </button>
             </div>
+
+            <!-- Time Filter Controls -->
+            <div class="time-controls">
+                <button class="time-button" onclick="loadChartData('10s')">10 Seconds</button>
+                <button class="time-button" onclick="loadChartData('30s')">30 Seconds</button>
+                <button class="time-button" onclick="loadChartData('1m')">1 Minute</button>
+                <button class="time-button" onclick="loadChartData('10m')">10 Minutes</button>
+                <button class="time-button" onclick="loadChartData('30m')">30 Minutes</button>
+                <button class="time-button active" onclick="loadChartData('1h')">1 Hour</button>
+                <button class="time-button" onclick="loadChartData('6h')">6 Hours</button>
+                <button class="time-button" onclick="loadChartData('24h')">24 Hours</button>
+            </div>
+            
             <div class="chart-container">
                 <canvas id="sensor-chart"></canvas>
+            </div>
+            
+            <div class="last-update">
+                Last updated: <span id="last-update-time">--</span>
             </div>
         </div>
     </div>
@@ -218,6 +382,12 @@
     <script>
         let sensorChart;
         let updateInterval;
+        let chartUpdateInterval;
+        let currentDevice = '';
+        let deviceThresholds = {};
+        let autoRefreshEnabled = true;
+        let refreshIntervalTime = 5000;
+        let lastDataCount = 0;
 
         // Initialize chart
         function initChart() {
@@ -252,27 +422,166 @@
                         y: {
                             beginAtZero: false
                         }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
                     }
                 }
             });
         }
 
-        // Load chart data
-        function loadChartData(hours) {
-            document.querySelectorAll('.time-button').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+        // Load devices
+        function loadDevices() {
+            fetch('api/device/list.php')
+            .then(response => response.json())
+            .then(data => {
+                const select = document.getElementById('device-select');
+                select.innerHTML = '<option value="">Select a device...</option>';
+                
+                if (data.success && data.devices) {
+                    data.devices.forEach(device => {
+                        const option = document.createElement('option');
+                        option.value = device.device_id;
+                        // Format: Display Text (Device ID)
+                        option.textContent = `${device.display_text} (${device.device_id})`;
+                        select.appendChild(option);
+                    });
+                    
+                    // Auto-select first device if available
+                    if (data.devices.length > 0) {
+                        select.value = data.devices[0].device_id;
+                        changeDevice();
+                    }
+                }
+            })
+            .catch(error => showStatus('Error loading devices'));
+        }
 
+        // Change device
+        function changeDevice() {
+            const select = document.getElementById('device-select');
+            currentDevice = select.value;
+            
+            if (currentDevice) {
+                loadDeviceThresholds();
+                updateLatestData();
+                loadChartData('1h');
+            }
+        }
+
+        // Load device thresholds
+        function loadDeviceThresholds() {
+            if (!currentDevice) return;
+            
+            fetch(`api/device/get.php?device_id=${currentDevice}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.device) {
+                    deviceThresholds = {
+                        temp_min: parseFloat(data.device.temp_min),
+                        temp_max: parseFloat(data.device.temp_max),
+                        humidity_min: parseFloat(data.device.humidity_min),
+                        humidity_max: parseFloat(data.device.humidity_max)
+                    };
+                    
+                    // Update threshold display
+                    document.getElementById('temp-threshold').textContent = 
+                        `Range: ${deviceThresholds.temp_min}°C to ${deviceThresholds.temp_max}°C`;
+                    document.getElementById('humidity-threshold').textContent = 
+                        `Range: ${deviceThresholds.humidity_min}% to ${deviceThresholds.humidity_max}%`;
+                }
+            })
+            .catch(error => console.error('Error loading thresholds:', error));
+        }
+
+        // Convert time period to hours for API
+        function timeToHours(period) {
+            const conversions = {
+                '10s': 10/3600,      // 10 seconds = 0.00278 hours
+                '30s': 30/3600,      // 30 seconds = 0.00833 hours
+                '1m': 1/60,          // 1 minute = 0.01667 hours
+                '10m': 10/60,        // 10 minutes = 0.1667 hours
+                '30m': 30/60,        // 30 minutes = 0.5 hours
+                '1h': 1,             // 1 hour
+                '6h': 6,             // 6 hours
+                '24h': 24            // 24 hours
+            };
+            return conversions[period] || 1;
+        }
+
+        // Format timestamp based on time period
+        function formatTimestamp(timestamp, period) {
+            const date = new Date(timestamp);
+            
+            if (period === '10s' || period === '30s' || period === '1m') {
+                // Show hours:minutes:seconds for short periods
+                return date.toLocaleTimeString([], {
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit'
+                });
+            } else if (period === '10m' || period === '30m' || period === '1h') {
+                // Show hours:minutes:seconds for medium periods
+                return date.toLocaleTimeString([], {
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit'
+                });
+            } else {
+                // Show date and time for longer periods
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {
+                    hour: '2-digit', 
+                    minute: '2-digit'
+                });
+            }
+        }
+
+        // Load chart data
+        function loadChartData(period) {
+            if (!currentDevice) {
+                showStatus('Please select a device first');
+                return;
+            }
+
+            // Remove active class from all buttons and add to clicked button
+            document.querySelectorAll('.time-button').forEach(btn => btn.classList.remove('active'));
+            
+            // Find and activate the correct button based on period
+            const buttons = document.querySelectorAll('.time-button');
+            buttons.forEach(btn => {
+                const btnText = btn.textContent.toLowerCase();
+                let btnPeriod = '';
+                
+                if (btnText.includes('10 seconds')) btnPeriod = '10s';
+                else if (btnText.includes('30 seconds')) btnPeriod = '30s';
+                else if (btnText.includes('1 minute')) btnPeriod = '1m';
+                else if (btnText.includes('10 minutes')) btnPeriod = '10m';
+                else if (btnText.includes('30 minutes')) btnPeriod = '30m';
+                else if (btnText.includes('1 hour')) btnPeriod = '1h';
+                else if (btnText.includes('6 hours')) btnPeriod = '6h';
+                else if (btnText.includes('24 hours')) btnPeriod = '24h';
+                
+                if (btnPeriod === period) {
+                    btn.classList.add('active');
+                }
+            });
+
+            const hours = timeToHours(period);
+            
             fetch('api/get_historical.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: `hours=${hours}`
+                body: `hours=${hours}&device_id=${currentDevice}`
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.data) {
-                    const labels = data.data.map(item => new Date(item.timestamp).toLocaleTimeString());
+                    const labels = data.data.map(item => formatTimestamp(item.timestamp, period));
                     const tempData = data.data.map(item => parseFloat(item.temperature));
                     const humidityData = data.data.map(item => parseFloat(item.humidity));
 
@@ -280,49 +589,197 @@
                     sensorChart.data.datasets[0].data = tempData;
                     sensorChart.data.datasets[1].data = humidityData;
                     sensorChart.update();
+                    
+                    // Check for new data
+                    if (data.data.length > lastDataCount) {
+                        lastDataCount = data.data.length;
+                        showStatus('New data received!');
+                    }
+                    
+                    console.log(`Loaded ${data.count} records for ${period} period`);
+                } else {
+                    console.error('No data received:', data);
+                    showStatus('No data available for selected period');
                 }
             })
-            .catch(error => showStatus('Error loading chart data'));
+            .catch(error => {
+                console.error('Chart data error:', error);
+                showStatus('Error loading chart data');
+            });
+        }
+
+        // Check sensor status based on thresholds
+        function checkSensorStatus(value, min, max, type) {
+            if (value < min || value > max) {
+                return { status: 'alert', text: `${type} Alert!` };
+            } else if (value <= min + (max - min) * 0.1 || value >= max - (max - min) * 0.1) {
+                return { status: 'warning', text: `${type} Warning` };
+            } else {
+                return { status: 'normal', text: `${type} Normal` };
+            }
         }
 
         // Update latest data
         function updateLatestData() {
-            fetch('api/get_latest.php', {
+            if (!currentDevice) return;
+            
+            fetch(`api/get_latest.php?device_id=${currentDevice}`, {
                 method: 'POST'
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.data) {
-                    document.getElementById('temp-value').textContent = 
-                        parseFloat(data.data.temperature).toFixed(1) + '°C';
-                    document.getElementById('humidity-value').textContent = 
-                        parseFloat(data.data.humidity).toFixed(1) + '%';
-                    document.getElementById('relay-value').textContent = 
-                        data.data.relay_status.toUpperCase();
+                    const temp = parseFloat(data.data.temperature);
+                    const humidity = parseFloat(data.data.humidity);
+                    const relayStatus = data.data.relay_status;
+                    
+                    // Update values
+                    document.getElementById('temp-value').textContent = temp.toFixed(1) + '°C';
+                    document.getElementById('humidity-value').textContent = humidity.toFixed(1) + '%';
+                    document.getElementById('relay-value').textContent = relayStatus ? 'ON' : 'OFF';
+                    
+                    // Update status indicators
+                    if (deviceThresholds.temp_min !== undefined) {
+                        const tempStatus = checkSensorStatus(temp, deviceThresholds.temp_min, deviceThresholds.temp_max, 'Temperature');
+                        const tempStatusEl = document.getElementById('temp-status');
+                        tempStatusEl.textContent = tempStatus.text;
+                        tempStatusEl.className = `card-status ${tempStatus.status}`;
+                        
+                        const humidityStatus = checkSensorStatus(humidity, deviceThresholds.humidity_min, deviceThresholds.humidity_max, 'Humidity');
+                        const humidityStatusEl = document.getElementById('humidity-status');
+                        humidityStatusEl.textContent = humidityStatus.text;
+                        humidityStatusEl.className = `card-status ${humidityStatus.status}`;
+                    }
+                    
+                    // Update last update time
+                    document.getElementById('last-update-time').textContent = new Date().toLocaleTimeString();
                 }
             })
             .catch(error => showStatus('Error updating data'));
         }
 
-        // Toggle relay
+        // Toggle relay - FIXED
         function toggleRelay() {
-            const currentStatus = document.getElementById('relay-value').textContent;
+            if (!currentDevice) {
+                showStatus('Please select a device first');
+                return;
+            }
             
-            fetch('api/toggle_relay.php', {
+            const button = document.getElementById('toggle-relay');
+            button.disabled = true;
+            
+            const currentStatus = document.getElementById('relay-value').textContent === 'ON';
+            const newStatus = !currentStatus;
+            
+            fetch(`api/set_relay.php`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: `current_status=${currentStatus}`
+                body: `device_id=${encodeURIComponent(currentDevice)}&status=${newStatus ? 'ON' : 'OFF'}`
             })
-            .then(response => response.json())
+            .then(response => {
+                // Check if response is ok
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                // Check if response has content
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Response is not JSON');
+                }
+                
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
-                    document.getElementById('relay-value').textContent = data.new_status;
-                    showStatus(`Relay turned ${data.new_status}`);
+                    document.getElementById('relay-value').textContent = data.status;
+                    showStatus(data.message);
+                } else {
+                    showStatus('Error toggling relay: ' + (data.error || 'Unknown error'));
                 }
             })
-            .catch(error => showStatus('Error toggling relay'));
+            .catch(error => {
+                console.error('Relay toggle error:', error);
+                showStatus('Error toggling relay: ' + error.message);
+            })
+            .finally(() => {
+                button.disabled = false;
+            });
+        }
+
+        // Auto-refresh functions
+        function toggleAutoRefresh() {
+            autoRefreshEnabled = document.getElementById('auto-refresh-checkbox').checked;
+            document.getElementById('refresh-status').textContent = autoRefreshEnabled ? 'ON' : 'OFF';
+            
+            if (autoRefreshEnabled) {
+                startAutoRefresh();
+            } else {
+                stopAutoRefresh();
+            }
+        }
+
+        function updateRefreshInterval() {
+            refreshIntervalTime = parseInt(document.getElementById('refresh-interval').value);
+            if (autoRefreshEnabled) {
+                stopAutoRefresh();
+                startAutoRefresh();
+            }
+        }
+
+        function startAutoRefresh() {
+            stopAutoRefresh();
+            updateInterval = setInterval(updateLatestData, refreshIntervalTime);
+            chartUpdateInterval = setInterval(() => {
+                const activeButton = document.querySelector('.time-button.active');
+                if (activeButton) {
+                    const btnText = activeButton.textContent.toLowerCase();
+                    let period = '';
+                    
+                    if (btnText.includes('10 seconds')) period = '10s';
+                    else if (btnText.includes('30 seconds')) period = '30s';
+                    else if (btnText.includes('1 minute')) period = '1m';
+                    else if (btnText.includes('10 minutes')) period = '10m';
+                    else if (btnText.includes('30 minutes')) period = '30m';
+                    else if (btnText.includes('1 hour')) period = '1h';
+                    else if (btnText.includes('6 hours')) period = '6h';
+                    else if (btnText.includes('24 hours')) period = '24h';
+                    
+                    if (period) {
+                        loadChartData(period);
+                    }
+                }
+            }, refreshIntervalTime * 2); // Update chart less frequently
+        }
+
+        function stopAutoRefresh() {
+            if (updateInterval) clearInterval(updateInterval);
+            if (chartUpdateInterval) clearInterval(chartUpdateInterval);
+        }
+
+        function manualRefresh() {
+            updateLatestData();
+            const activeButton = document.querySelector('.time-button.active');
+            if (activeButton) {
+                const btnText = activeButton.textContent.toLowerCase();
+                let period = '';
+                
+                if (btnText.includes('10 seconds')) period = '10s';
+                else if (btnText.includes('30 seconds')) period = '30s';
+                else if (btnText.includes('1 minute')) period = '1m';
+                else if (btnText.includes('10 minutes')) period = '10m';
+                else if (btnText.includes('30 minutes')) period = '30m';
+                else if (btnText.includes('1 hour')) period = '1h';
+                else if (btnText.includes('6 hours')) period = '6h';
+                else if (btnText.includes('24 hours')) period = '24h';
+                
+                if (period) {
+                    loadChartData(period);
+                }
+            }
+            showStatus('Data refreshed manually');
         }
 
         // Show status message
@@ -336,18 +793,17 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             initChart();
-            updateLatestData();
-            loadChartData(1);
-            updateInterval = setInterval(updateLatestData, 5000);
+            loadDevices();
+            startAutoRefresh();
         });
 
         // Handle page visibility
         document.addEventListener('visibilitychange', function() {
             if (document.hidden) {
-                clearInterval(updateInterval);
-            } else {
+                stopAutoRefresh();
+            } else if (autoRefreshEnabled) {
                 updateLatestData();
-                updateInterval = setInterval(updateLatestData, 5000);
+                startAutoRefresh();
             }
         });
     </script>

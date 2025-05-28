@@ -5,7 +5,6 @@
 // Include required files
 require_once '../config.php';
 require_once '../Database.php';
-require_once '../SensorModel.php';
 
 // Set content type for JSON responses
 header('Content-Type: application/json');
@@ -31,27 +30,49 @@ try {
         exit;
     }
     
-    // Initialize sensor model
-    $sensorModel = new SensorModel($pdo,);
+    // Get parameters
+    $hours = isset($_POST['hours']) ? floatval($_POST['hours']) : 1;
+    $deviceId = isset($_POST['device_id']) ? trim($_POST['device_id']) : null;
     
-    // Get hours parameter (default to 1 hour)
-    $hours = isset($_POST['hours']) ? intval($_POST['hours']) : 1;
-    
-    // Validate hours parameter
-    if ($hours < 1 || $hours > 168) { // Max 1 week
+    // Validate hours parameter (allow fractional hours for short periods)
+    if ($hours < 0.001 || $hours > 168) { // Min ~3.6 seconds, Max 1 week
         http_response_code(400);
-        echo json_encode(['error' => 'Hours must be between 1 and 168']);
+        echo json_encode(['error' => 'Hours must be between 0.001 and 168']);
         exit;
     }
     
-    // Get historical data
-    $data = $sensorModel->getHistoricalData($hours);
+    // Build query based on whether device_id is provided
+    if ($deviceId) {
+        $stmt = $pdo->prepare("
+            SELECT device_id, temperature, humidity, relay_status, timestamp 
+            FROM sensor_data 
+            WHERE device_id = ? AND timestamp >= DATE_SUB(NOW(), INTERVAL ? HOUR)
+            ORDER BY timestamp ASC
+        ");
+        $stmt->execute([$deviceId, $hours]);
+    } else {
+        $stmt = $pdo->prepare("
+            SELECT device_id, temperature, humidity, relay_status, timestamp 
+            FROM sensor_data 
+            WHERE timestamp >= DATE_SUB(NOW(), INTERVAL ? HOUR)
+            ORDER BY timestamp ASC
+        ");
+        $stmt->execute([$hours]);
+    }
+    
+    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Convert relay_status to boolean for each record
+    foreach ($data as &$record) {
+        $record['relay_status'] = (bool)$record['relay_status'];
+    }
     
     // Return success response
     echo json_encode([
         'success' => true,
         'data' => $data,
         'hours' => $hours,
+        'device_id' => $deviceId,
         'count' => count($data)
     ]);
     

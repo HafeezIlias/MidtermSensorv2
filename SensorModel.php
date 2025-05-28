@@ -82,31 +82,7 @@ class SensorModel {
         }
     }
 
-    /**
-     * Insert new sensor data
-     */
-    public function insertSensorData($temperature, $humidity, $relayStatus, $deviceId = null) {
-        try {
-            if ($deviceId) {
-                $stmt = $this->pdo->prepare("
-                    INSERT INTO sensor_data 
-                    (device_id, temperature, humidity, relay_status, timestamp) 
-                    VALUES (?, ?, ?, ?, NOW())
-                ");
-                return $stmt->execute([$deviceId, $temperature, $humidity, $relayStatus]);
-            } else {
-                $stmt = $this->pdo->prepare("
-                    INSERT INTO sensor_data 
-                    (temperature, humidity, relay_status, timestamp) 
-                    VALUES (?, ?, ?, NOW())
-                ");
-                return $stmt->execute([$temperature, $humidity, $relayStatus]);
-            }
-        } catch (PDOException $e) {
-            error_log("Error inserting sensor data: " . $e->getMessage());
-            return false;
-        }
-    }
+
 
     /**
      * Get min/max thresholds for a device
