@@ -4,7 +4,8 @@
 
 return [
     'db_host' => 'localhost',
-    'db_username' => 'your_username',
-    'db_password' => 'your_password'
+    'db_username' => 'feeyamnw_sensors',
+    'db_password' => 'N#U)c!MDP;OX',
+    'db_name' => 'feeyamnw_sensorbased',
 ];
 ?>
