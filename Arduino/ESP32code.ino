@@ -68,121 +68,194 @@ String readStringFromEEPROM(int addr) {
   return String(data);
 }
 
-// === Device Registration Function ===
-bool registerDevice() {
-  if (deviceId.length() == 0) {
-    Serial.println("❌ Device ID is empty, cannot register");
-    return false;
-  }
-
+// === Device Registration Function (Void) ===
+void registerDevice() {
   Serial.println("🔄 Attempting device registration...");
   Serial.println("Device ID: " + deviceId);
 
   String httpReqStr = serverName + "Backend/api/device/register.php?device_id=" + deviceId + "&user=ESP32_User&display_text=" + displayText;
   Serial.println("Request URL: " + httpReqStr);
-  
+
   http.begin(httpReqStr.c_str());
   int httpResponseCode = http.GET();
   
   Serial.print("HTTP Response Code: ");
   Serial.println(httpResponseCode);
   
-  if (httpResponseCode > 0) {
+  // Accept both 200 (existing device) and 201 (new device) as successful
+  if (httpResponseCode == 200 || httpResponseCode == 201) {
     String payload = http.getString();
-    Serial.println("Raw Response: " + payload);
     
     StaticJsonDocument<512> doc;
     DeserializationError error = deserializeJson(doc, payload);
     
-    if (error) {
-      Serial.print("❌ JSON parsing failed: ");
-      Serial.println(error.c_str());
-      http.end();
-      return false;
-    }
-    
-    // Debug: Print parsed JSON values
-    Serial.println("Parsed JSON:");
-    Serial.print("  success: ");
-    Serial.println(doc["success"] ? "true" : "false");
-    
-    if (doc["message"]) {
-      Serial.print("  message: ");
-      Serial.println(doc["message"].as<String>());
-    }
-    
-    if (doc["registered"]) {
-      Serial.print("  registered: ");
-      Serial.println(doc["registered"] ? "true" : "false");
-    }
-    
-    // Check if registration was successful (either new or already registered)
-    if (doc["success"]) {
+    if (!error && doc["success"]) {
       Serial.println("✅ Device registration successful");
       
-      // Check if this was a new registration or already registered
-      if (doc["registered"] == false) {
-        Serial.println("ℹ️  Device was already registered");
-      } else {
-        Serial.println("ℹ️  New device registered");
+      // Parse device data from JSON response
+      JsonObject device = doc["device"];
+      
+      // Extract values using proper casting method
+      String newDisplayText = String((const char*)device["display_text"]);
+      bool newRelayStatus = device["relay_status"];
+      float newTempMax = device["temp_max"];
+      float newTempMin = device["temp_min"];
+      float newHumidityMax = device["humidity_max"];
+      float newHumidityMin = device["humidity_min"];
+      
+      // Debug: Print extracted values
+      Serial.println("📊 Device configuration from server:");
+      Serial.println("  Display Text: " + newDisplayText);
+      Serial.println("  Relay Status: " + String(newRelayStatus ? "ON" : "OFF"));
+      Serial.println("  Temp Range: " + String(newTempMin) + "°C - " + String(newTempMax) + "°C");
+      Serial.println("  Humidity Range: " + String(newHumidityMin) + "% - " + String(newHumidityMax) + "%");
+      
+      // Check if we need to update configuration
+      bool configChanged = false;
+      
+      // Update display text if different
+      if (newDisplayText != displayText && newDisplayText.length() > 0) {
+        displayText = newDisplayText;
+        configChanged = true;
+        Serial.println("📝 Updated display text: " + displayText);
       }
       
-      // Update thresholds from server response if device data is available
-      if (doc["device"]) {
-        JsonObject device = doc["device"];
+      // Update thresholds if valid values received
+      if (newTempMin > 0 && newTempMax > newTempMin && 
+          newHumidityMin > 0 && newHumidityMax > newHumidityMin) {
         
-        if (device["temp_min"] && device["temp_max"] && 
-            device["humidity_min"] && device["humidity_max"]) {
+        if (tempMin != newTempMin || tempMax != newTempMax || 
+            humMin != newHumidityMin || humMax != newHumidityMax) {
           
-          tempMin = device["temp_min"];
-          tempMax = device["temp_max"];
-          humMin = device["humidity_min"];
-          humMax = device["humidity_max"];
+          tempMin = newTempMin;
+          tempMax = newTempMax;
+          humMin = newHumidityMin;
+          humMax = newHumidityMax;
+          configChanged = true;
           
-          Serial.println("📊 Updating thresholds:");
-          Serial.println("  Temp: " + String(tempMin) + "°C - " + String(tempMax) + "°C");
+          Serial.println("🔧 Thresholds updated:");
+          Serial.println("  Temperature: " + String(tempMin) + "°C - " + String(tempMax) + "°C");
           Serial.println("  Humidity: " + String(humMin) + "% - " + String(humMax) + "%");
-          
-          // Store updated thresholds in preferences
-          prefs.begin("thresholds", false);
-          prefs.putFloat("tempMax", tempMax);
-          prefs.putFloat("tempMin", tempMin);
-          prefs.putFloat("humidityMax", humMax);
-          prefs.putFloat("humidityMin", humMin);
-          prefs.end();
-          
-          Serial.println("✅ Thresholds updated and saved");
-        } else {
-          Serial.println("⚠️  Device data incomplete, using default thresholds");
         }
       } else {
-        Serial.println("⚠️  No device data in response");
+        Serial.println("⚠️  Invalid threshold values from server - keeping current values");
+      }
+      
+      // Save configuration to preferences if anything changed
+      if (configChanged) {
+        prefs.begin("config", false);
+        prefs.putString("displayText", displayText);
+        prefs.putFloat("tempMax", tempMax);
+        prefs.putFloat("tempMin", tempMin);
+        prefs.putFloat("humidityMax", humMax);
+        prefs.putFloat("humidityMin", humMin);
+        prefs.end();
+        
+        Serial.println("💾 Configuration saved to preferences");
+      }
+      
+      // Check registration status from response
+      bool isNewRegistration = (httpResponseCode == 201);
+      bool wasAlreadyRegistered = doc["registered"];
+      
+      if (isNewRegistration) {
+        Serial.println("🆕 New device registered successfully");
+      } else if (!wasAlreadyRegistered) {
+        Serial.println("ℹ️  Device was already registered");
+      }
+      
+      // Print server message if available
+      if (doc["message"]) {
+        String message = String((const char*)doc["message"]);
+        Serial.println("📨 Server message: " + message);
       }
       
       deviceRegistered = true;
       http.end();
-      return true;
+      
+      // Show success on display
+      display.clearDisplay();
+      display.setCursor(0, 0);
+      display.println("Device Ready");
+      display.setCursor(0, 10);
+      display.println(displayText.length() > 12 ? displayText.substring(0, 12) : displayText);
+      display.setCursor(0, 20);
+      display.println("Status: Online");
+      display.display();
+      Serial.println("📺 Display updated: Device Ready");
       
     } else {
-      Serial.println("❌ Registration failed - success is false");
-      if (doc["error"]) {
-        Serial.println("Server error: " + doc["error"].as<String>());
+      // Handle JSON parsing error or unsuccessful response
+      if (error) {
+        Serial.print("❌ JSON parsing failed: ");
+        Serial.println(error.c_str());
+      } else {
+        Serial.println("❌ Registration failed - server returned success: false");
+        if (doc["error"]) {
+          String errorMsg = String((const char*)doc["error"]);
+          Serial.println("Server error: " + errorMsg);
+        }
       }
+      
+      http.end();
+      
+      // Show error on display
+      display.clearDisplay();
+      display.setCursor(0, 0);
+      display.println("Registration");
+      display.setCursor(0, 10);
+      display.println("Failed");
+      display.setCursor(0, 20);
+      if (error) {
+        display.println("JSON Error");
+      } else {
+        display.println("Server Error");
+      }
+      display.display();
+      Serial.println("📺 Display: Registration Failed");
     }
+    
   } else {
     Serial.print("❌ HTTP request failed with code: ");
     Serial.println(httpResponseCode);
     
-    // Additional error information
-    if (httpResponseCode == -1) {
-      Serial.println("  Connection failed - check WiFi/server");
-    } else if (httpResponseCode == -11) {
-      Serial.println("  Timeout - server not responding");
+    // Provide detailed error information
+    String errorDescription = "";
+    switch(httpResponseCode) {
+      case -1:
+        errorDescription = "Connection failed - check WiFi/server";
+        break;
+      case -11:
+        errorDescription = "Timeout - server not responding";
+        break;
+      case 400:
+        errorDescription = "Bad request - check parameters";
+        break;
+      case 404:
+        errorDescription = "API endpoint not found";
+        break;
+      case 500:
+        errorDescription = "Internal server error";
+        break;
+      default:
+        errorDescription = "Unexpected HTTP error";
+        break;
     }
+    Serial.println("  " + errorDescription);
+    
+    http.end();
+    
+    // Show connection error on display
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("Connection Error");
+    display.setCursor(0, 10);
+    display.println("Code: " + String(httpResponseCode));
+    display.setCursor(0, 20);
+    display.println("Check Network");
+    display.display();
+    Serial.println("📺 Display: Connection Error");
   }
-  
-  http.end();
-  return false;
 }
 
 
@@ -337,31 +410,8 @@ void setup() {
   display.setCursor(0, 0);
   display.println("Registering Device...");
   display.display();
-  
-   if (registerDevice()) {
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.println("Device Ready");
-    display.setCursor(0, 10);
-    display.println("ID: " + deviceId.substring(0, 12)); // Show first 12 chars
-    display.setCursor(0, 20);
-    display.println("Status: Online");
-    display.display();
-    
-    Serial.println("📺 Display updated: Device Ready");
-  } else {
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.println("Registration Failed");
-    display.setCursor(0, 10);
-    display.println("Check WiFi/Server");
-    display.setCursor(0, 20);
-    display.println("Retrying...");
-    display.display();
-    
-    Serial.println("📺 Display updated: Registration Failed");
-  }
-  
+  delay(2000);
+  registerDevice();
   delay(2000);
 
   // Send initial data
