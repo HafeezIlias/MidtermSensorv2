@@ -1616,6 +1616,13 @@
                 updateData.humidity_max = maxValue;
             }
             
+            // Debug logging
+            console.log('Saving thresholds:', {
+                sensorType: sensorType,
+                currentDevice: currentDevice,
+                updateData: updateData
+            });
+            
             // Disable save button during request
             const saveBtn = document.querySelector(`#${sensorType}-threshold-edit .save`);
             saveBtn.disabled = true;
@@ -1629,8 +1636,14 @@
                 },
                 body: JSON.stringify(updateData)
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                return response.json();
+            })
             .then(data => {
+                console.log('Response data:', data);
+                
                 if (data.success) {
                     // Update local thresholds
                     if (sensorType === 'temp') {
@@ -1654,11 +1667,12 @@
                     showStatus(`${sensorType === 'temp' ? 'Temperature' : 'Humidity'} thresholds updated successfully!`);
                 } else {
                     showStatus('Error updating thresholds: ' + (data.error || 'Unknown error'));
+                    console.error('API Error:', data);
                 }
             })
             .catch(error => {
                 console.error('Threshold update error:', error);
-                showStatus('Error updating thresholds');
+                showStatus('Error updating thresholds: ' + error.message);
             })
             .finally(() => {
                 // Re-enable save button

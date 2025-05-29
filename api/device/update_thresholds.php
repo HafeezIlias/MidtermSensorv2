@@ -51,6 +51,9 @@ try {
         }
     }
     
+    // Debug: Log received data
+    error_log("Update thresholds - Received data: " . json_encode($data));
+    
     // Get device_id (required)
     $deviceId = isset($data['device_id']) ? trim($data['device_id']) : null;
     
@@ -67,47 +70,89 @@ try {
     
     if (!$device) {
         http_response_code(404);
-        echo json_encode(['success' => false, 'error' => 'Device not found']);
+        echo json_encode(['success' => false, 'error' => 'Device not found: ' . $deviceId]);
         exit;
     }
     
+    // Build dynamic update query based on provided parameters
+    $updateFields = [];
+    $updateValues = [];
     
-    // Handle threshold updates
-    $tempMin = isset($data['temp_min']) ? floatval($data['temp_min']) : null;
-    $tempMax = isset($data['temp_max']) ? floatval($data['temp_max']) : null;
-    $humidityMin = isset($data['humidity_min']) ? floatval($data['humidity_min']) : null;
-    $humidityMax = isset($data['humidity_max']) ? floatval($data['humidity_max']) : null;
+    // Handle temperature thresholds
+    if (isset($data['temp_min']) && isset($data['temp_max'])) {
+        $tempMin = floatval($data['temp_min']);
+        $tempMax = floatval($data['temp_max']);
+        
+        if ($tempMin >= $tempMax) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Temperature minimum must be less than maximum']);
+            exit;
+        }
+        
+        $updateFields[] = 'temp_min = ?';
+        $updateFields[] = 'temp_max = ?';
+        $updateValues[] = $tempMin;
+        $updateValues[] = $tempMax;
+    }
     
-    if ($tempMin === null || $tempMax === null || $humidityMin === null || $humidityMax === null) {
+    // Handle humidity thresholds
+    if (isset($data['humidity_min']) && isset($data['humidity_max'])) {
+        $humidityMin = floatval($data['humidity_min']);
+        $humidityMax = floatval($data['humidity_max']);
+        
+        if ($humidityMin >= $humidityMax) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Humidity minimum must be less than maximum']);
+            exit;
+        }
+        
+        if ($humidityMin < 0 || $humidityMax > 100) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Humidity values must be between 0% and 100%']);
+            exit;
+        }
+        
+        $updateFields[] = 'humidity_min = ?';
+        $updateFields[] = 'humidity_max = ?';
+        $updateValues[] = $humidityMin;
+        $updateValues[] = $humidityMax;
+    }
+    
+    // Check if we have any fields to update
+    if (empty($updateFields)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Missing required parameters: temp_min, temp_max, humidity_min, humidity_max']);
+        echo json_encode(['success' => false, 'error' => 'No valid threshold parameters provided']);
         exit;
     }
     
-    // Validate ranges
-    if ($tempMin >= $tempMax) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Temperature minimum must be less than maximum']);
-        exit;
-    }
+    // Add updated_at field
+    $updateFields[] = 'updated_at = NOW()';
     
-    if ($humidityMin >= $humidityMax) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Humidity minimum must be less than maximum']);
-        exit;
-    }
+    // Add device_id for WHERE clause
+    $updateValues[] = $deviceId;
     
-    // Update thresholds
-    $stmt = $pdo->prepare("
-        UPDATE devices 
-        SET temp_min = ?, temp_max = ?, humidity_min = ?, humidity_max = ?, updated_at = NOW() 
-        WHERE device_id = ?
-    ");
+    // Build and execute update query
+    $sql = "UPDATE devices SET " . implode(', ', $updateFields) . " WHERE device_id = ?";
+    $stmt = $pdo->prepare($sql);
     
-    $success = $stmt->execute([$tempMin, $tempMax, $humidityMin, $humidityMax, $deviceId]);
+    error_log("Update query: " . $sql);
+    error_log("Update values: " . json_encode($updateValues));
     
-    if ($success) {
-        echo json_encode(['success' => true, 'message' => 'Thresholds updated successfully']);
+    $success = $stmt->execute($updateValues);
+    
+    if ($success && $stmt->rowCount() > 0) {
+        // Get updated device data
+        $stmt = $pdo->prepare("SELECT * FROM devices WHERE device_id = ?");
+        $stmt->execute([$deviceId]);
+        $updatedDevice = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        echo json_encode([
+            'success' => true, 
+            'message' => 'Thresholds updated successfully',
+            'device' => $updatedDevice
+        ]);
+    } else if ($success) {
+        echo json_encode(['success' => true, 'message' => 'No changes made - values already current']);
     } else {
         http_response_code(500);
         echo json_encode(['success' => false, 'error' => 'Failed to update thresholds']);
