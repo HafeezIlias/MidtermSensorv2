@@ -43,6 +43,19 @@
             padding: 8px 15px;
             border-radius: 20px;
             margin-top: 10px;
+            gap: 15px;
+        }
+
+        .refresh-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .device-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .refresh-dot {
@@ -54,10 +67,29 @@
             animation: pulse 2s infinite;
         }
 
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+        .device-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .device-dot.online {
+            background: #4CAF50;
+        }
+
+        .device-dot.offline {
+            background: #F44336;
+            animation: blink 1s infinite;
+        }
+
+        .device-dot.unknown {
+            background: #FF9800;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
         }
 
         .device-selector {
@@ -139,11 +171,6 @@
             background: #ffebee;
             color: #c62828;
             animation: blink 1s infinite;
-        }
-
-        @keyframes blink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0.7; }
         }
 
         .threshold-info {
@@ -790,8 +817,14 @@
             <h1>ESP32 Sensor Monitor</h1>
             <p>Real-time IoT Dashboard</p>
             <div class="auto-refresh-indicator">
-                <div class="refresh-dot"></div>
-                <span>Auto-refresh: <span id="refresh-status">ON</span></span>
+                <div class="refresh-status">
+                    <div class="refresh-dot"></div>
+                    <span>Auto-refresh: <span id="refresh-status">ON</span></span>
+                </div>
+                <div class="device-status">
+                    <div class="device-dot unknown" id="device-dot"></div>
+                    <span>Device: <span id="device-status">Unknown</span></span>
+                </div>
             </div>
         </div>
 
@@ -1010,12 +1043,14 @@
         let sensorChart;
         let updateInterval;
         let chartUpdateInterval;
+        let deviceStatusInterval;
         let currentDevice = '';
         let deviceThresholds = {};
         let autoRefreshEnabled = true;
-        let refreshIntervalTime = 5000;
+        let refreshIntervalTime = 10000;
         let lastDataCount = 0;
         let relayMode = 'auto';
+        let lastDataTimestamp = null;
 
         // Initialize chart
         function initChart() {
@@ -1097,6 +1132,10 @@
                 loadDeviceThresholds();
                 updateLatestData();
                 loadChartData('1h');
+                startDeviceStatusMonitoring(); // Start monitoring device status
+            } else {
+                stopDeviceStatusMonitoring(); // Stop monitoring if no device selected
+                updateDeviceStatusIndicator('unknown', 'No device selected');
             }
         }
 
@@ -1523,7 +1562,11 @@
 
         function startAutoRefresh() {
             stopAutoRefresh();
-            updateInterval = setInterval(updateLatestData, refreshIntervalTime);
+            updateInterval = setInterval(() => {
+                updateLatestData();
+                checkDeviceStatus(); // Also check device status during auto-refresh
+            }, refreshIntervalTime);
+            
             chartUpdateInterval = setInterval(() => {
                 const activeButton = document.querySelector('.time-button.active');
                 if (activeButton) {
@@ -1587,15 +1630,20 @@
             initChart();
             loadDevices();
             startAutoRefresh();
+            // Device status monitoring will start when a device is selected
         });
 
         // Handle page visibility
         document.addEventListener('visibilitychange', function() {
             if (document.hidden) {
                 stopAutoRefresh();
+                stopDeviceStatusMonitoring();
             } else if (autoRefreshEnabled) {
                 updateLatestData();
                 startAutoRefresh();
+                if (currentDevice) {
+                    startDeviceStatusMonitoring();
+                }
             }
         });
 
@@ -1753,6 +1801,89 @@
                 saveBtn.disabled = false;
                 saveBtn.textContent = '💾 Save';
             });
+        }
+
+        // Device status checking
+        function checkDeviceStatus() {
+            if (!currentDevice) {
+                updateDeviceStatusIndicator('unknown', 'No device selected');
+                return;
+            }
+
+            fetch(`api/get_latest.php?device_id=${currentDevice}`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    const dataTimestamp = new Date(data.data.timestamp);
+                    const now = new Date();
+                    const timeDiff = (now - dataTimestamp) / 1000; // seconds
+                    
+                    // Update last data timestamp
+                    lastDataTimestamp = dataTimestamp;
+                    
+                    // Determine device status based on data age
+                    if (timeDiff <= 30) {
+                        // Data within last 30 seconds = online
+                        updateDeviceStatusIndicator('online', 'Online');
+                    } else if (timeDiff <= 120) {
+                        // Data within last 2 minutes = recently online
+                        updateDeviceStatusIndicator('online', `Last seen ${Math.round(timeDiff)}s ago`);
+                    } else if (timeDiff <= 300) {
+                        // Data within last 5 minutes = warning
+                        updateDeviceStatusIndicator('unknown', `Last seen ${Math.round(timeDiff/60)}m ago`);
+                    } else {
+                        // No data for more than 5 minutes = offline
+                        const minutes = Math.round(timeDiff / 60);
+                        const hours = Math.round(timeDiff / 3600);
+                        const timeText = hours > 1 ? `${hours}h ago` : `${minutes}m ago`;
+                        updateDeviceStatusIndicator('offline', `Offline (${timeText})`);
+                    }
+                } else {
+                    updateDeviceStatusIndicator('offline', 'No data available');
+                }
+            })
+            .catch(error => {
+                console.error('Device status check error:', error);
+                updateDeviceStatusIndicator('offline', 'Connection error');
+            });
+        }
+
+        function updateDeviceStatusIndicator(status, text) {
+            const deviceDot = document.getElementById('device-dot');
+            const deviceStatus = document.getElementById('device-status');
+            
+            // Remove all status classes
+            deviceDot.classList.remove('online', 'offline', 'unknown');
+            
+            // Add current status class
+            deviceDot.classList.add(status);
+            
+            // Update status text
+            deviceStatus.textContent = text;
+            
+            // Log status changes
+            console.log(`Device status: ${status} - ${text}`);
+        }
+
+        function startDeviceStatusMonitoring() {
+            // Check device status every 15 seconds
+            if (deviceStatusInterval) {
+                clearInterval(deviceStatusInterval);
+            }
+            
+            deviceStatusInterval = setInterval(checkDeviceStatus, 15000);
+            
+            // Initial check
+            checkDeviceStatus();
+        }
+
+        function stopDeviceStatusMonitoring() {
+            if (deviceStatusInterval) {
+                clearInterval(deviceStatusInterval);
+                deviceStatusInterval = null;
+            }
         }
     </script>
 </body>
