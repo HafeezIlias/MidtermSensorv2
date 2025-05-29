@@ -33,7 +33,15 @@ function checkSensorStatus(value, min, max, sensorType) {
     }
     
     // Update progress bar
-    const progressBar = document.getElementById(`${sensorType.toLowerCase()}-progress`);
+    let progressBarId;
+    if (sensorType.toLowerCase() === 'temperature') {
+        progressBarId = 'temp-progress';
+    } else if (sensorType.toLowerCase() === 'humidity') {
+        progressBarId = 'humidity-progress';
+    } else {
+        progressBarId = `${sensorType.toLowerCase()}-progress`;
+    }
+    const progressBar = document.getElementById(progressBarId);
     if (progressBar) {
         progressBar.style.width = progress + '%';
         
