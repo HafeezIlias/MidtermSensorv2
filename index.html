@@ -1184,6 +1184,8 @@
                 return;
             }
 
+            console.log(`Loading chart data for period: ${period}`);
+
             // Remove active class from all buttons and add to clicked button
             document.querySelectorAll('.time-button').forEach(btn => btn.classList.remove('active'));
             
@@ -1208,6 +1210,7 @@
             });
 
             const hours = timeToHours(period);
+            console.log(`Converted ${period} to ${hours} hours`);
             
             fetch('api/get_historical.php', {
                 method: 'POST',
@@ -1216,33 +1219,50 @@
                 },
                 body: `hours=${hours}&device_id=${currentDevice}`
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log(`API Response status: ${response.status}`);
+                return response.json();
+            })
             .then(data => {
-                if (data.success && data.data) {
-                    const labels = data.data.map(item => formatTimestamp(item.timestamp, period));
-                    const tempData = data.data.map(item => parseFloat(item.temperature));
-                    const humidityData = data.data.map(item => parseFloat(item.humidity));
+                console.log('API Response data:', data);
+                
+                if (data.success) {
+                    if (data.data && data.data.length > 0) {
+                        const labels = data.data.map(item => formatTimestamp(item.timestamp, period));
+                        const tempData = data.data.map(item => parseFloat(item.temperature));
+                        const humidityData = data.data.map(item => parseFloat(item.humidity));
 
-                    sensorChart.data.labels = labels;
-                    sensorChart.data.datasets[0].data = tempData;
-                    sensorChart.data.datasets[1].data = humidityData;
-                    sensorChart.update();
-                    
-                    // Check for new data
-                    if (data.data.length > lastDataCount) {
-                        lastDataCount = data.data.length;
-                        showStatus('New data received!');
+                        sensorChart.data.labels = labels;
+                        sensorChart.data.datasets[0].data = tempData;
+                        sensorChart.data.datasets[1].data = humidityData;
+                        sensorChart.update();
+                        
+                        // Check for new data
+                        if (data.data.length > lastDataCount) {
+                            lastDataCount = data.data.length;
+                            showStatus('New data received!');
+                        }
+                        
+                        console.log(`✅ Loaded ${data.count} records for ${period} period (${data.time_unit}: ${data.time_value})`);
+                        showStatus(`Loaded ${data.count} records for ${period} period`);
+                    } else {
+                        // No data available for this period
+                        sensorChart.data.labels = [];
+                        sensorChart.data.datasets[0].data = [];
+                        sensorChart.data.datasets[1].data = [];
+                        sensorChart.update();
+                        
+                        console.log(`⚠️ No data available for ${period} period`);
+                        showStatus(`No data available for ${period} period - try a longer time range`);
                     }
-                    
-                    console.log(`Loaded ${data.count} records for ${period} period`);
                 } else {
-                    console.error('No data received:', data);
-                    showStatus('No data available for selected period');
+                    console.error('API Error:', data);
+                    showStatus('Error loading chart data: ' + (data.error || 'Unknown error'));
                 }
             })
             .catch(error => {
                 console.error('Chart data error:', error);
-                showStatus('Error loading chart data');
+                showStatus('Error loading chart data: ' + error.message);
             });
         }
 
