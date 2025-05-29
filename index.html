@@ -613,26 +613,37 @@
 
         .threshold-edit-form {
             display: none;
+            flex-direction: column;
             gap: 10px;
             margin-top: 10px;
+            width: 100%;
         }
 
         .threshold-edit-form.active {
             display: flex;
         }
 
+        .threshold-input-row {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+
         .threshold-input {
             flex: 1;
-            padding: 8px 12px;
+            padding: 8px 10px;
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 8px;
             background: rgba(255, 255, 255, 0.1);
             color: white;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            min-width: 0; /* Allow shrinking */
+            box-sizing: border-box;
         }
 
         .threshold-input::placeholder {
             color: rgba(255, 255, 255, 0.7);
+            font-size: 0.8rem;
         }
 
         .threshold-input:focus {
@@ -643,17 +654,22 @@
 
         .threshold-actions {
             display: flex;
-            gap: 8px;
+            gap: 6px;
+            margin-top: 8px;
+            width: 100%;
         }
 
         .threshold-btn {
-            padding: 8px 12px;
+            flex: 1;
+            padding: 8px 10px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 500;
             transition: all 0.3s ease;
+            white-space: nowrap;
+            min-width: 0;
         }
 
         .threshold-btn.save {
@@ -663,7 +679,7 @@
 
         .threshold-btn.save:hover {
             background: #45a049;
-            transform: scale(1.05);
+            transform: scale(1.02);
         }
 
         .threshold-btn.cancel {
@@ -726,8 +742,44 @@
                 gap: 10px;
             }
             
-            .threshold-edit-form {
+            .threshold-input-row {
                 flex-direction: column;
+                gap: 8px;
+            }
+            
+            .threshold-input {
+                font-size: 0.9rem;
+                padding: 10px 12px;
+            }
+            
+            .threshold-actions {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .threshold-btn {
+                font-size: 0.85rem;
+                padding: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .sensor-card {
+                padding: 20px 15px;
+            }
+            
+            .threshold-section {
+                padding: 12px;
+            }
+            
+            .threshold-input {
+                font-size: 0.85rem;
+                padding: 8px 10px;
+            }
+            
+            .threshold-btn {
+                font-size: 0.8rem;
+                padding: 8px;
             }
         }
     </style>
@@ -790,8 +842,10 @@
                     </div>
                     
                     <div class="threshold-edit-form" id="temp-threshold-edit">
-                        <input type="number" class="threshold-input" id="temp-min-input" placeholder="Min °C" step="0.1">
-                        <input type="number" class="threshold-input" id="temp-max-input" placeholder="Max °C" step="0.1">
+                        <div class="threshold-input-row">
+                            <input type="number" class="threshold-input" id="temp-min-input" placeholder="Min °C" step="0.1">
+                            <input type="number" class="threshold-input" id="temp-max-input" placeholder="Max °C" step="0.1">
+                        </div>
                         <div class="threshold-actions">
                             <button class="threshold-btn save" onclick="saveThresholds('temp')">💾 Save</button>
                             <button class="threshold-btn cancel" onclick="cancelThresholdEdit('temp')">❌ Cancel</button>
@@ -842,8 +896,10 @@
                     </div>
                     
                     <div class="threshold-edit-form" id="humidity-threshold-edit">
-                        <input type="number" class="threshold-input" id="humidity-min-input" placeholder="Min %" step="0.1" min="0" max="100">
-                        <input type="number" class="threshold-input" id="humidity-max-input" placeholder="Max %" step="0.1" min="0" max="100">
+                        <div class="threshold-input-row">
+                            <input type="number" class="threshold-input" id="humidity-min-input" placeholder="Min %" step="0.1" min="0" max="100">
+                            <input type="number" class="threshold-input" id="humidity-max-input" placeholder="Max %" step="0.1" min="0" max="100">
+                        </div>
                         <div class="threshold-actions">
                             <button class="threshold-btn save" onclick="saveThresholds('humidity')">💾 Save</button>
                             <button class="threshold-btn cancel" onclick="cancelThresholdEdit('humidity')">❌ Cancel</button>
