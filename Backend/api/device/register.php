@@ -2,27 +2,28 @@
 // Device Registration API
 // api/device/register.php
 
-// Prevent any HTML output and ensure JSON response
-ob_start();
-error_reporting(0);
-ini_set('display_errors', 0);
+require_once '../../../db/config.php';
+require_once '../../../db/Database.php';
 
-// Set JSON header immediately
 header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
 
-// Wrap everything in try-catch to ensure JSON response
+// Handle preflight requests
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+// Handle both GET and POST requests
+if ($_SERVER['REQUEST_METHOD'] !== 'GET' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+    exit;
+}
+
 try {
-    require_once '../../../db/config.php';
-    require_once '../../../db/Database.php';
-
-    // Handle both GET and POST requests
-    if ($_SERVER['REQUEST_METHOD'] !== 'GET' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
-        ob_clean();
-        http_response_code(405);
-        echo json_encode(['error' => 'Method not allowed']);
-        exit;
-    }
-
     // Load configuration
     $config = require '../../../db/config.php';
     
@@ -31,13 +32,12 @@ try {
     $pdo = $database->getConnection();
     
     if (!$pdo) {
-        ob_clean();
         http_response_code(500);
-        echo json_encode(['error' => 'Database connection failed']);
+        echo json_encode(['success' => false, 'error' => 'Database connection failed']);
         exit;
     }
     
-    // Get parameters (support both GET and POST)
+    // Get parameters
     $deviceId = null;
     $user = null;
     $displayText = null;
@@ -54,11 +54,14 @@ try {
     }
     
     if (!$deviceId) {
-        ob_clean();
         http_response_code(400);
-        echo json_encode(['error' => 'Missing device_id parameter']);
+        echo json_encode(['success' => false, 'error' => 'Missing device_id parameter']);
         exit;
     }
+    
+    // Set defaults
+    if (!$user) $user = 'ESP32_User';
+    if (!$displayText) $displayText = $deviceId;
     
     // Check if device already exists
     $stmt = $pdo->prepare("SELECT device_id, user, display_text, relay_status, temp_min, temp_max, humidity_min, humidity_max FROM devices WHERE device_id = ? LIMIT 1");
@@ -67,7 +70,6 @@ try {
     
     if ($existingDevice) {
         // Device already exists
-        ob_clean();
         echo json_encode([
             'success' => true,
             'registered' => false,
@@ -93,8 +95,8 @@ try {
         
         $success = $stmt->execute([
             $deviceId,
-            $user ?: 'ESP32_User',
-            $displayText ?: $deviceId,
+            $user,
+            $displayText,
             false, // Default relay status as boolean
             20.0,  // Default temp_min
             30.0,  // Default temp_max
@@ -108,7 +110,6 @@ try {
             $stmt->execute([$deviceId]);
             $registeredDevice = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            ob_clean();
             echo json_encode([
                 'success' => true,
                 'message' => 'Device registered successfully',
@@ -124,16 +125,14 @@ try {
                 ]
             ]);
         } else {
-            ob_clean();
             http_response_code(500);
-            echo json_encode(['error' => 'Failed to register device']);
+            echo json_encode(['success' => false, 'error' => 'Failed to register device']);
         }
     }
     
 } catch (Exception $e) {
-    // Always return JSON even on exceptions
-    ob_clean();
+    error_log("API Error - device register: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Internal server error: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'error' => 'Internal server error']);
 }
 ?> 
