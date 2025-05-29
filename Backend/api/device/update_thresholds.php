@@ -2,8 +2,8 @@
 // Update Device Thresholds API
 // api/device/update_thresholds.php
 
-require_once '../../config.php';
-require_once '../../Database.php';
+require_once '../../../db/config.php';
+require_once '../../../db/Database.php';
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 try {
     // Load configuration
-    $config = require '../../config.php';
+    $config = require '../../../db/config.php';
     
     // Initialize database connection
     $database = new Database($config);

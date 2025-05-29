@@ -22,7 +22,15 @@ All API calls in the frontend have been updated to use the new `Backend/api/` st
 - `api/set_relay.php` → `Backend/api/set_relay.php`
 - `api/device/update_thresholds.php` → `Backend/api/device/update_thresholds.php`
 
-### 3. Organized CSS and JavaScript
+### 3. Fixed Database Connection Paths
+All API files now correctly reference the database configuration files:
+
+**Fixed require_once paths**:
+- Main API files (`Backend/api/*.php`): `require_once '../../db/config.php'` and `require_once '../../db/Database.php'`
+- Device API files (`Backend/api/device/*.php`): `require_once '../../../db/config.php'` and `require_once '../../../db/Database.php'`
+- Status API file: Uses both `db/config.php` and `../../SensorModel.php` for compatibility
+
+### 4. Organized CSS and JavaScript
 
 #### CSS Structure (`assets/css/`)
 - **`base.css`** - Global styles, reset, layout, animations
@@ -58,9 +66,6 @@ MidtermSensorv2/
 │       └── threshold-management.js
 ├── Backend/
 │   └── api/
-│       ├── db/
-│       │   ├── config.php
-│       │   └── Database.php
 │       ├── device/
 │       │   ├── config.php
 │       │   ├── get.php
@@ -72,6 +77,9 @@ MidtermSensorv2/
 │       ├── get_latest.php
 │       ├── set_relay.php
 │       └── status.php
+├── db/
+│   ├── config.php
+│   └── Database.php
 ├── Arduino/
 ├── components/
 ├── index.html

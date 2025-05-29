@@ -2,8 +2,8 @@
 // ESP32 Sensor Data API
 // api/device/sensor_data.php
 
-require_once '../../config.php';
-require_once '../../Database.php';
+require_once '../../../db/config.php';
+require_once '../../../db/Database.php';
 
 header('Content-Type: application/json');
 
@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 try {
     // Load configuration
-    $config = require '../../config.php';
+    $config = require '../../../db/config.php';
     
     // Initialize database connection
     $database = new Database($config);

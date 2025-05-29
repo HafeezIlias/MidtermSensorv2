@@ -3,8 +3,8 @@
 // api/get_latest.php
 
 // Include required files
-require_once '../config.php';
-require_once '../Database.php';
+require_once '../../db/config.php';
+require_once '../../db/Database.php';
 
 // Set content type for JSON responses
 header('Content-Type: application/json');
@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'GET
 
 try {
     // Load configuration
-    $config = require '../config.php';
+    $config = require '../../db/config.php';
     
     // Initialize database connection
     $database = new Database($config);

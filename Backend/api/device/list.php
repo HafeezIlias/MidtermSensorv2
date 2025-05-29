@@ -1,11 +1,11 @@
 <?php
-require_once '../../config.php';
-require_once '../../Database.php';
+require_once '../../../db/config.php';
+require_once '../../../db/Database.php';
 
 header('Content-Type: application/json');
 
 try {
-    $config = require '../../config.php';
+    $config = require '../../../db/config.php';
     $database = new Database($config);
     $pdo = $database->getConnection();
     $stmt = $pdo->query('SELECT device_id, user, display_text, relay_status, temp_min, temp_max, humidity_min, humidity_max FROM devices');
