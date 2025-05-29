@@ -3,9 +3,9 @@
 // api/status.php
 
 // Include required files
-require_once '../config.php';
-require_once '../Database.php';
-require_once '../SensorModel.php';
+require_once 'db/config.php';
+require_once 'db/Database.php';
+require_once '../../SensorModel.php';
 
 // Set content type for JSON responses
 header('Content-Type: application/json');
@@ -19,7 +19,7 @@ if (!in_array($_SERVER['REQUEST_METHOD'], ['GET', 'POST'])) {
 
 try {
     // Load configuration
-    $config = require '../config.php';
+    $config = require 'db/config.php';
     
     // Initialize database connection
     $database = new Database($config);

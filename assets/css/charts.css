@@ -1,0 +1,129 @@
+/* ESP32 Sensor Monitor - Charts and Controls Styles */
+
+/* Charts Section */
+.charts-section {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 30px;
+}
+
+.chart-container {
+    height: 300px;
+    margin-top: 20px;
+}
+
+/* Time Controls */
+.time-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.time-button {
+    padding: 8px 16px;
+    border: 2px solid #667eea;
+    background: transparent;
+    color: #667eea;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.time-button.active,
+.time-button:hover {
+    background: #667eea;
+    color: white;
+}
+
+/* Auto-refresh Controls */
+.auto-refresh-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.refresh-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.refresh-interval {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.refresh-interval select {
+    padding: 5px 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .time-controls {
+        justify-content: center;
+    }
+    
+    .auto-refresh-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .sensor-value {
+        font-size: 2.5rem;
+    }
+    
+    .threshold-range {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .threshold-input-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .threshold-input {
+        font-size: 0.9rem;
+        padding: 10px 12px;
+    }
+    
+    .threshold-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .threshold-btn {
+        font-size: 0.85rem;
+        padding: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .sensor-card {
+        padding: 20px 15px;
+    }
+    
+    .threshold-section {
+        padding: 12px;
+    }
+    
+    .threshold-input {
+        font-size: 0.85rem;
+        padding: 8px 10px;
+    }
+    
+    .threshold-btn {
+        font-size: 0.8rem;
+        padding: 8px;
+    }
+} 
