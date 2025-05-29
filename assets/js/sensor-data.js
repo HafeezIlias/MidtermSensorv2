@@ -43,6 +43,8 @@ function checkSensorStatus(value, min, max, sensorType) {
     }
     const progressBar = document.getElementById(progressBarId);
     if (progressBar) {
+        console.log('Updating progress bar:', progressBarId, 'Progress:', progress); // Debug log
+        progressBar.offsetWidth; // Force reflow
         progressBar.style.width = progress + '%';
         
         // Change color based on status
