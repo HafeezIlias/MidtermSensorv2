@@ -1,60 +1,54 @@
 // ESP32 Sensor Monitor - Sensor Data Functions
 
-// Enhanced sensor status checking with progress barsfunction checkSensorStatus(value, min, max, sensorType) {
-    function checkSensorStatus(value, min, max, sensorType) {
-        let status, text, progress;
+// Enhanced sensor status checking with progress bars
+function checkSensorStatus(value, min, max, sensorType) {
+    let status, text, progress;
     
+    if (value < min) {
+        status = 'alert';
+        text = `Too Low (${value.toFixed(1)})`;
+        progress = 0;
+    } else if (value > max) {
+        status = 'alert';
+        text = `Too High (${value.toFixed(1)})`;
+        progress = 100;
+    } else {
+        // Calculate position within acceptable range
         const range = max - min;
-    
-        // Prevent division by zero
-        if (range <= 0) {
-            status = 'alert';
-            text = `Invalid range`;
-            progress = 0;
+        const position = value - min;
+        progress = (position / range) * 100;
+        
+        // Determine warning levels
+        const warningThreshold = 0.15; // 15% from edges
+        const minWarning = min + (range * warningThreshold);
+        const maxWarning = max - (range * warningThreshold);
+        
+        if (value < minWarning || value > maxWarning) {
+            status = 'warning';
+            text = `Warning (${value.toFixed(1)})`;
         } else {
-            // Clamp value between min and max
-            const clampedValue = Math.min(Math.max(value, min), max);
-            progress = ((clampedValue - min) / range) * 100;
-    
-            if (value < min) {
-                status = 'alert';
-                text = `Too Low (${value.toFixed(1)})`;
-            } else if (value > max) {
-                status = 'alert';
-                text = `Too High (${value.toFixed(1)})`;
-            } else {
-                const warningThreshold = 0.15; // 15% from edges
-                const minWarning = min + (range * warningThreshold);
-                const maxWarning = max - (range * warningThreshold);
-    
-                if (value < minWarning || value > maxWarning) {
-                    status = 'warning';
-                    text = `Warning (${value.toFixed(1)})`;
-                } else {
-                    status = 'normal';
-                    text = `Normal (${value.toFixed(1)})`;
-                }
-            }
+            status = 'normal';
+            text = `Normal (${value.toFixed(1)})`;
         }
-    
-        // Update progress bar
-        const progressBar = document.getElementById(`${sensorType.toLowerCase()}-progress`);
-        if (progressBar) {
-            progressBar.style.width = `${progress.toFixed(1)}%`;
-    
-            // Change color based on status
-            if (status === 'alert') {
-                progressBar.style.background = 'linear-gradient(90deg, #F44336, #E57373)';
-            } else if (status === 'warning') {
-                progressBar.style.background = 'linear-gradient(90deg, #FF9800, #FFB74D)';
-            } else {
-                progressBar.style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)';
-            }
-        }
-    
-        return { status, text };
     }
     
+    // Update progress bar
+    const progressBar = document.getElementById(`${sensorType.toLowerCase()}-progress`);
+    if (progressBar) {
+        progressBar.style.width = progress + '%';
+        
+        // Change color based on status
+        if (status === 'alert') {
+            progressBar.style.background = 'linear-gradient(90deg, #F44336, #E57373)';
+        } else if (status === 'warning') {
+            progressBar.style.background = 'linear-gradient(90deg, #FF9800, #FFB74D)';
+        } else {
+            progressBar.style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)';
+        }
+    }
+    
+    return { status, text };
+}
 
 // Update latest data
 function updateLatestData() {
