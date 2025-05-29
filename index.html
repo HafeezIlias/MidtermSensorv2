@@ -427,6 +427,309 @@
                 align-items: stretch;
             }
         }
+
+        /* Modern Sensor Cards */
+        .sensor-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            padding: 25px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .sensor-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .sensor-card.humidity {
+            background: linear-gradient(135deg, #36a2eb 0%, #4facfe 100%);
+            box-shadow: 0 10px 30px rgba(54, 162, 235, 0.3);
+        }
+
+        .sensor-card.humidity:hover {
+            box-shadow: 0 15px 40px rgba(54, 162, 235, 0.4);
+        }
+
+        .sensor-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .sensor-card:hover::before {
+            top: -30%;
+            right: -30%;
+        }
+
+        .sensor-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .sensor-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .sensor-icon {
+            font-size: 2rem;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .sensor-value {
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 15px 0;
+            position: relative;
+            z-index: 2;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .sensor-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 15px 0;
+            position: relative;
+            z-index: 2;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.normal {
+            background: #4CAF50;
+        }
+
+        .status-indicator.warning {
+            background: #FF9800;
+        }
+
+        .status-indicator.alert {
+            background: #F44336;
+        }
+
+        .status-text {
+            font-weight: 500;
+            font-size: 1rem;
+        }
+
+        .threshold-section {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            position: relative;
+            z-index: 2;
+            backdrop-filter: blur(10px);
+        }
+
+        .threshold-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .threshold-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            opacity: 0.9;
+        }
+
+        .edit-threshold-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .edit-threshold-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .threshold-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .threshold-range {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .threshold-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .threshold-label {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .threshold-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .threshold-edit-form {
+            display: none;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .threshold-edit-form.active {
+            display: flex;
+        }
+
+        .threshold-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .threshold-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .threshold-input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .threshold-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .threshold-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .threshold-btn.save {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .threshold-btn.save:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+
+        .threshold-btn.cancel {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .threshold-btn.cancel:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 15px;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .sensor-value {
+                font-size: 2.5rem;
+            }
+            
+            .threshold-range {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .threshold-edit-form {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body>
@@ -449,26 +752,108 @@
         </div>
 
         <div class="card-grid">
-            <!-- Temperature Card -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-icon">🌡️</div>
-                    <div class="card-title">Temperature</div>
+            <!-- Modern Temperature Card -->
+            <div class="sensor-card">
+                <div class="sensor-header">
+                    <div class="sensor-title">
+                        <span class="sensor-icon">🌡️</span>
+                        <span>Temperature</span>
+                    </div>
                 </div>
-                <div class="card-value" id="temp-value">--°C</div>
-                <div class="card-status" id="temp-status">Normal</div>
-                <div class="threshold-info" id="temp-threshold">Range: --°C to --°C</div>
+                
+                <div class="sensor-value" id="temp-value">--°C</div>
+                
+                <div class="sensor-status">
+                    <div class="status-indicator normal" id="temp-status-indicator"></div>
+                    <div class="status-text" id="temp-status">Normal</div>
+                </div>
+                
+                <div class="threshold-section">
+                    <div class="threshold-header">
+                        <div class="threshold-title">Acceptable Range</div>
+                        <button class="edit-threshold-btn" onclick="toggleThresholdEdit('temp')">
+                            ✏️ Edit
+                        </button>
+                    </div>
+                    
+                    <div class="threshold-display" id="temp-threshold-display">
+                        <div class="threshold-range">
+                            <div class="threshold-item">
+                                <div class="threshold-label">Min</div>
+                                <div class="threshold-value" id="temp-min-display">--°C</div>
+                            </div>
+                            <div class="threshold-item">
+                                <div class="threshold-label">Max</div>
+                                <div class="threshold-value" id="temp-max-display">--°C</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="threshold-edit-form" id="temp-threshold-edit">
+                        <input type="number" class="threshold-input" id="temp-min-input" placeholder="Min °C" step="0.1">
+                        <input type="number" class="threshold-input" id="temp-max-input" placeholder="Max °C" step="0.1">
+                        <div class="threshold-actions">
+                            <button class="threshold-btn save" onclick="saveThresholds('temp')">💾 Save</button>
+                            <button class="threshold-btn cancel" onclick="cancelThresholdEdit('temp')">❌ Cancel</button>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="temp-progress" style="width: 50%"></div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Humidity Card -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-icon">💧</div>
-                    <div class="card-title">Humidity</div>
+            <!-- Modern Humidity Card -->
+            <div class="sensor-card humidity">
+                <div class="sensor-header">
+                    <div class="sensor-title">
+                        <span class="sensor-icon">💧</span>
+                        <span>Humidity</span>
+                    </div>
                 </div>
-                <div class="card-value" id="humidity-value">--%</div>
-                <div class="card-status" id="humidity-status">Normal</div>
-                <div class="threshold-info" id="humidity-threshold">Range: --% to --%</div>
+                
+                <div class="sensor-value" id="humidity-value">--%</div>
+                
+                <div class="sensor-status">
+                    <div class="status-indicator normal" id="humidity-status-indicator"></div>
+                    <div class="status-text" id="humidity-status">Normal</div>
+                </div>
+                
+                <div class="threshold-section">
+                    <div class="threshold-header">
+                        <div class="threshold-title">Acceptable Range</div>
+                        <button class="edit-threshold-btn" onclick="toggleThresholdEdit('humidity')">
+                            ✏️ Edit
+                        </button>
+                    </div>
+                    
+                    <div class="threshold-display" id="humidity-threshold-display">
+                        <div class="threshold-range">
+                            <div class="threshold-item">
+                                <div class="threshold-label">Min</div>
+                                <div class="threshold-value" id="humidity-min-display">--%</div>
+                            </div>
+                            <div class="threshold-item">
+                                <div class="threshold-label">Max</div>
+                                <div class="threshold-value" id="humidity-max-display">--%</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="threshold-edit-form" id="humidity-threshold-edit">
+                        <input type="number" class="threshold-input" id="humidity-min-input" placeholder="Min %" step="0.1" min="0" max="100">
+                        <input type="number" class="threshold-input" id="humidity-max-input" placeholder="Max %" step="0.1" min="0" max="100">
+                        <div class="threshold-actions">
+                            <button class="threshold-btn save" onclick="saveThresholds('humidity')">💾 Save</button>
+                            <button class="threshold-btn cancel" onclick="cancelThresholdEdit('humidity')">❌ Cancel</button>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="humidity-progress" style="width: 50%"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- Relay Control Card -->
@@ -677,10 +1062,10 @@
                     };
                     
                     // Update threshold display
-                    document.getElementById('temp-threshold').textContent = 
-                        `Range: ${deviceThresholds.temp_min}°C to ${deviceThresholds.temp_max}°C`;
-                    document.getElementById('humidity-threshold').textContent = 
-                        `Range: ${deviceThresholds.humidity_min}% to ${deviceThresholds.humidity_max}%`;
+                    document.getElementById('temp-min-display').textContent = deviceThresholds.temp_min.toFixed(1) + '°C';
+                    document.getElementById('temp-max-display').textContent = deviceThresholds.temp_max.toFixed(1) + '°C';
+                    document.getElementById('humidity-min-display').textContent = deviceThresholds.humidity_min.toFixed(1) + '%';
+                    document.getElementById('humidity-max-display').textContent = deviceThresholds.humidity_max.toFixed(1) + '%';
                     
                     // Load relay mode
                     const deviceRelayMode = data.device.relay_mode || 'auto';
@@ -805,15 +1190,54 @@
             });
         }
 
-        // Check sensor status based on thresholds
-        function checkSensorStatus(value, min, max, type) {
-            if (value < min || value > max) {
-                return { status: 'alert', text: `${type} Alert!` };
-            } else if (value <= min + (max - min) * 0.1 || value >= max - (max - min) * 0.1) {
-                return { status: 'warning', text: `${type} Warning` };
+        // Enhanced sensor status checking with progress bars
+        function checkSensorStatus(value, min, max, sensorType) {
+            let status, text, progress;
+            
+            if (value < min) {
+                status = 'alert';
+                text = `Too Low (${value.toFixed(1)})`;
+                progress = 0;
+            } else if (value > max) {
+                status = 'alert';
+                text = `Too High (${value.toFixed(1)})`;
+                progress = 100;
             } else {
-                return { status: 'normal', text: `${type} Normal` };
+                // Calculate position within acceptable range
+                const range = max - min;
+                const position = value - min;
+                progress = (position / range) * 100;
+                
+                // Determine warning levels
+                const warningThreshold = 0.15; // 15% from edges
+                const minWarning = min + (range * warningThreshold);
+                const maxWarning = max - (range * warningThreshold);
+                
+                if (value < minWarning || value > maxWarning) {
+                    status = 'warning';
+                    text = `Warning (${value.toFixed(1)})`;
+                } else {
+                    status = 'normal';
+                    text = `Normal (${value.toFixed(1)})`;
+                }
             }
+            
+            // Update progress bar
+            const progressBar = document.getElementById(`${sensorType.toLowerCase()}-progress`);
+            if (progressBar) {
+                progressBar.style.width = progress + '%';
+                
+                // Change color based on status
+                if (status === 'alert') {
+                    progressBar.style.background = 'linear-gradient(90deg, #F44336, #E57373)';
+                } else if (status === 'warning') {
+                    progressBar.style.background = 'linear-gradient(90deg, #FF9800, #FFB74D)';
+                } else {
+                    progressBar.style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)';
+                }
+            }
+            
+            return { status, text };
         }
 
         // Update latest data
@@ -836,17 +1260,17 @@
                     document.getElementById('relay-value').textContent = relayStatus ? 'ON' : 'OFF';
                     
                     // Update status indicators
-                    if (deviceThresholds.temp_min !== undefined) {
-                        const tempStatus = checkSensorStatus(temp, deviceThresholds.temp_min, deviceThresholds.temp_max, 'Temperature');
-                        const tempStatusEl = document.getElementById('temp-status');
-                        tempStatusEl.textContent = tempStatus.text;
-                        tempStatusEl.className = `card-status ${tempStatus.status}`;
-                        
-                        const humidityStatus = checkSensorStatus(humidity, deviceThresholds.humidity_min, deviceThresholds.humidity_max, 'Humidity');
-                        const humidityStatusEl = document.getElementById('humidity-status');
-                        humidityStatusEl.textContent = humidityStatus.text;
-                        humidityStatusEl.className = `card-status ${humidityStatus.status}`;
-                    }
+                    const tempStatus = checkSensorStatus(temp, deviceThresholds.temp_min, deviceThresholds.temp_max, 'Temperature');
+                    const tempStatusEl = document.getElementById('temp-status');
+                    const tempStatusIndicator = document.getElementById('temp-status-indicator');
+                    tempStatusEl.textContent = tempStatus.text;
+                    tempStatusIndicator.className = `status-indicator ${tempStatus.status}`;
+
+                    const humidityStatus = checkSensorStatus(humidity, deviceThresholds.humidity_min, deviceThresholds.humidity_max, 'Humidity');
+                    const humidityStatusEl = document.getElementById('humidity-status');
+                    const humidityStatusIndicator = document.getElementById('humidity-status-indicator');
+                    humidityStatusEl.textContent = humidityStatus.text;
+                    humidityStatusIndicator.className = `status-indicator ${humidityStatus.status}`;
                     
                     // Update toggle switch state
                     const toggleSwitch = document.getElementById('relay-toggle');
@@ -1107,6 +1531,140 @@
             const toggleSwitch = document.getElementById('relay-toggle');
             toggleSwitch.checked = !toggleSwitch.checked;
             toggleRelaySwitch();
+        }
+
+        // Threshold editing functions
+        function toggleThresholdEdit(sensorType) {
+            const editForm = document.getElementById(`${sensorType}-threshold-edit`);
+            const display = document.getElementById(`${sensorType}-threshold-display`);
+            const isEditing = editForm.classList.contains('active');
+            
+            if (isEditing) {
+                cancelThresholdEdit(sensorType);
+            } else {
+                // Show edit form
+                editForm.classList.add('active');
+                display.style.opacity = '0.5';
+                
+                // Populate current values
+                if (sensorType === 'temp') {
+                    document.getElementById('temp-min-input').value = deviceThresholds.temp_min;
+                    document.getElementById('temp-max-input').value = deviceThresholds.temp_max;
+                } else {
+                    document.getElementById('humidity-min-input').value = deviceThresholds.humidity_min;
+                    document.getElementById('humidity-max-input').value = deviceThresholds.humidity_max;
+                }
+                
+                // Focus first input
+                document.getElementById(`${sensorType}-min-input`).focus();
+            }
+        }
+
+        function cancelThresholdEdit(sensorType) {
+            const editForm = document.getElementById(`${sensorType}-threshold-edit`);
+            const display = document.getElementById(`${sensorType}-threshold-display`);
+            
+            editForm.classList.remove('active');
+            display.style.opacity = '1';
+            
+            // Clear inputs
+            document.getElementById(`${sensorType}-min-input`).value = '';
+            document.getElementById(`${sensorType}-max-input`).value = '';
+        }
+
+        function saveThresholds(sensorType) {
+            if (!currentDevice) {
+                showStatus('Please select a device first');
+                return;
+            }
+            
+            const minInput = document.getElementById(`${sensorType}-min-input`);
+            const maxInput = document.getElementById(`${sensorType}-max-input`);
+            
+            const minValue = parseFloat(minInput.value);
+            const maxValue = parseFloat(maxInput.value);
+            
+            // Validation
+            if (isNaN(minValue) || isNaN(maxValue)) {
+                showStatus('Please enter valid numbers');
+                return;
+            }
+            
+            if (minValue >= maxValue) {
+                showStatus('Minimum value must be less than maximum value');
+                return;
+            }
+            
+            // Additional validation for humidity
+            if (sensorType === 'humidity') {
+                if (minValue < 0 || maxValue > 100) {
+                    showStatus('Humidity values must be between 0% and 100%');
+                    return;
+                }
+            }
+            
+            // Prepare data
+            const updateData = {
+                device_id: currentDevice
+            };
+            
+            if (sensorType === 'temp') {
+                updateData.temp_min = minValue;
+                updateData.temp_max = maxValue;
+            } else {
+                updateData.humidity_min = minValue;
+                updateData.humidity_max = maxValue;
+            }
+            
+            // Disable save button during request
+            const saveBtn = document.querySelector(`#${sensorType}-threshold-edit .save`);
+            saveBtn.disabled = true;
+            saveBtn.textContent = '💾 Saving...';
+            
+            // Send update request
+            fetch('api/device/update_thresholds.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updateData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update local thresholds
+                    if (sensorType === 'temp') {
+                        deviceThresholds.temp_min = minValue;
+                        deviceThresholds.temp_max = maxValue;
+                        document.getElementById('temp-min-display').textContent = minValue.toFixed(1) + '°C';
+                        document.getElementById('temp-max-display').textContent = maxValue.toFixed(1) + '°C';
+                    } else {
+                        deviceThresholds.humidity_min = minValue;
+                        deviceThresholds.humidity_max = maxValue;
+                        document.getElementById('humidity-min-display').textContent = minValue.toFixed(1) + '%';
+                        document.getElementById('humidity-max-display').textContent = maxValue.toFixed(1) + '%';
+                    }
+                    
+                    // Close edit form
+                    cancelThresholdEdit(sensorType);
+                    
+                    // Refresh current data to update status
+                    updateLatestData();
+                    
+                    showStatus(`${sensorType === 'temp' ? 'Temperature' : 'Humidity'} thresholds updated successfully!`);
+                } else {
+                    showStatus('Error updating thresholds: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Threshold update error:', error);
+                showStatus('Error updating thresholds');
+            })
+            .finally(() => {
+                // Re-enable save button
+                saveBtn.disabled = false;
+                saveBtn.textContent = '💾 Save';
+            });
         }
     </script>
 </body>
