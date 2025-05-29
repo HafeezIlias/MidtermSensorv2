@@ -50,6 +50,8 @@ float tempMin = 20.0;
 float humMax = 85.0;
 float humMin = 40.0;
 bool deviceRegistered = false;
+String currentAlert = "";
+bool hasAlert = false;
 
 // === EEPROM Helpers ===
 void writeStringToEEPROM(int addr, const String &str) {
@@ -321,6 +323,7 @@ void loop() {
   delay(1500);
   getDataFromMySql(deviceId, temp, hum); // FIXED: Simplified function call
   delay(1500);
+  checkForAlerts(temp, hum);
   updateDisplay(temp, hum, relayStatus);
   handleConfigButtonPress();
   
@@ -352,40 +355,41 @@ void getDataFromMySql(String deviceId, float temp, float hum) {
 
             bool configChanged = false;
 
-            // PRIORITY: Check for relay status change first
-            if (newRelayStatus != relayStatus) {
-                relayStatus = newRelayStatus;
-                digitalWrite(RELAY_PIN, relayStatus ? HIGH : LOW);
-                Serial.println("🔌 Relay updated from server: " + String(relayStatus ? "ON" : "OFF"));
-                
-                // Show on display immediately
-                display.clearDisplay();
-                display.setCursor(0, 0);
-                display.println("Relay Updated!");
-                display.setCursor(0, 10);
-                display.println("Status: " + String(relayStatus ? "ON" : "OFF"));
-                display.display();
-                delay(2000);
-                
-                configChanged = true;
-            }
-
             // Update relay mode
-            if (newRelayMode != relayMode) {
-                relayMode = newRelayMode;
-                Serial.println("⚙️ Relay mode updated: " + relayMode);
-                configChanged = true;
-            }
+if (newRelayMode != relayMode) {
+    relayMode = newRelayMode;
+    Serial.println("⚙️ Relay mode updated: " + relayMode);
+    configChanged = true;
+}
 
-            // Handle relay control based on mode
-            if (relayMode == "manual") {
-                // Manual mode - relay controlled by web interface
-                // Status already updated above if changed
-                Serial.println("👤 Manual mode active - web control");
-            } else {
-                // Auto mode - use threshold-based control
-                checkThresholdAndControlRelay(temp, hum);
-            }
+// Handle relay control based on current mode
+if (relayMode == "manual") {
+    // Manual mode - relay controlled by web interface
+    Serial.println("👤 Manual mode active - web control");
+    
+    // Check for relay status change in manual mode
+    if (newRelayStatus != relayStatus) {
+        relayStatus = newRelayStatus;
+        digitalWrite(RELAY_PIN, relayStatus ? HIGH : LOW);
+        Serial.println("🔌 Relay updated from server: " + String(relayStatus ? "ON" : "OFF"));
+        
+        // Show on display immediately
+        display.clearDisplay();
+        display.setCursor(0, 0);
+        display.println("Relay Updated!");
+        display.setCursor(0, 10);
+        display.println("Status: " + String(relayStatus ? "ON" : "OFF"));
+        display.display();
+        delay(2000);
+        
+        configChanged = true;
+    }
+} else {
+    // Auto mode - use threshold-based control
+    Serial.println("🤖 Auto mode active - threshold control");
+    checkThresholdAndControlRelay(temp, hum);
+}
+            
 
             // Update display text if changed
             if (newDisplayText != displayText && newDisplayText.length() > 0) {
@@ -429,8 +433,9 @@ void getDataFromMySql(String deviceId, float temp, float hum) {
 
     http.end();
 }
-
+// Modified updateDisplay function to show alerts
 void updateDisplay(float temp, float hum, bool relayStatus) {
+  // First screen - WiFi, Device ID, Mode
   display.clearDisplay();
 
   display.setCursor(0, 0);
@@ -442,11 +447,12 @@ void updateDisplay(float temp, float hum, bool relayStatus) {
 
   display.setCursor(0, 20);
   display.print("Mode: ");
-  display.print(relayMode.substring(0, 6)); // NEW: Show relay mode
+  display.print(relayMode.substring(0, 6));
   display.display();
 
   delay(2000);
 
+  // Second screen - Temperature, Humidity, Relay
   display.clearDisplay();
   display.setCursor(0, 0);
   display.print("Temp: ");
@@ -461,8 +467,61 @@ void updateDisplay(float temp, float hum, bool relayStatus) {
   display.setCursor(0, 20);
   display.print("Relay: ");
   display.print(relayStatus ? "ON" : "OFF");
-
+  
   display.display();
+  
+  // If there's an alert, show it on a third screen
+  if (hasAlert) {
+    delay(2000);
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("ALERT! (" + relayMode + ")");
+    display.setCursor(0, 10);
+    display.println(currentAlert);
+    display.display();
+    delay(3000); // Show alert for 3 seconds
+  }
+}
+
+//check thresholds in both manual and auto modes
+void checkForAlerts(float temperature, float humidity) {
+  prefs.begin("thresholds", true);
+  float tempMax = prefs.getFloat("tempMax", 40.0);
+  float tempMin = prefs.getFloat("tempMin", 20.0);
+  float humidityMax = prefs.getFloat("humidityMax", 80.0);
+  float humidityMin = prefs.getFloat("humidityMin", 30.0);
+  prefs.end();
+
+  bool tempAlert = false;
+  bool humAlert = false;
+  String alertMessage = "";
+
+  // Check temperature
+  if (temperature < tempMin) {
+    tempAlert = true;
+    alertMessage += "TEMP LOW ";
+  } else if (temperature > tempMax) {
+    tempAlert = true;
+    alertMessage += "TEMP HIGH ";
+  }
+
+  // Check humidity
+  if (humidity < humidityMin) {
+    humAlert = true;
+    alertMessage += "HUM LOW ";
+  } else if (humidity > humidityMax) {
+    humAlert = true;
+    alertMessage += "HUM HIGH ";
+  }
+
+  // Update global alert status
+  if (tempAlert || humAlert) {
+    currentAlert = alertMessage.substring(0, alertMessage.length() - 1);
+    hasAlert = true;
+  } else {
+    currentAlert = "";
+    hasAlert = false;
+  }
 }
 
 void handleConfigButtonPress() {
@@ -483,7 +542,7 @@ void handleConfigButtonPress() {
   }
 }
 
-// FIXED: Simplified threshold checking function
+// Modified checkThresholdAndControlRelay function
 void checkThresholdAndControlRelay(float temperature, float humidity) {
   prefs.begin("thresholds", true);
   float tempMax = prefs.getFloat("tempMax", 40.0);
@@ -493,21 +552,50 @@ void checkThresholdAndControlRelay(float temperature, float humidity) {
   prefs.end();
 
   bool shouldTurnOn = false;
+  bool tempAlert = false;
+  bool humAlert = false;
+  String alertMessage = "";
 
-  if (temperature < tempMin || temperature > tempMax) {
-    Serial.println("🌡️ Temperature out of range!");
+  // Check temperature
+  if (temperature < tempMin) {
+    Serial.println("🌡️ Temperature too low!");
     shouldTurnOn = true;
+    tempAlert = true;
+    alertMessage += "TEMP LOW ";
+  } else if (temperature > tempMax) {
+    Serial.println("🌡️ Temperature too high!");
+    shouldTurnOn = true;
+    tempAlert = true;
+    alertMessage += "TEMP HIGH ";
   }
 
-  if (humidity < humidityMin || humidity > humidityMax) {
-    Serial.println("💧 Humidity out of range!");
+  // Check humidity
+  if (humidity < humidityMin) {
+    Serial.println("💧 Humidity too low!");
     shouldTurnOn = true;
+    humAlert = true;
+    alertMessage += "HUM LOW ";
+  } else if (humidity > humidityMax) {
+    Serial.println("💧 Humidity too high!");
+    shouldTurnOn = true;
+    humAlert = true;
+    alertMessage += "HUM HIGH ";
   }
 
+  // Update global alert status
+  if (tempAlert || humAlert) {
+    currentAlert = alertMessage.substring(0, alertMessage.length() - 1); // Remove trailing space
+    hasAlert = true;
+  } else {
+    currentAlert = "";
+    hasAlert = false;
+  }
+
+  // Control relay based on threshold check
   if (shouldTurnOn != relayStatus) {
     relayStatus = shouldTurnOn;
     digitalWrite(RELAY_PIN, relayStatus ? HIGH : LOW);
     Serial.print("🔌 Auto mode - Relay turned ");
     Serial.println(relayStatus ? "ON" : "OFF");
   }
-} 
+}
