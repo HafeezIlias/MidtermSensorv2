@@ -4,7 +4,6 @@
 
 require_once '../../config.php';
 require_once '../../Database.php';
-require_once '../../SensorModel.php';
 
 header('Content-Type: application/json');
 
@@ -29,9 +28,6 @@ try {
         exit;
     }
     
-    // Initialize sensor model
-    $sensorModel = new SensorModel($pdo,);
-    
     // Get device ID
     $deviceId = isset($_GET['device_id']) ? $_GET['device_id'] : null;
     
@@ -41,30 +37,27 @@ try {
         exit;
     }
     
-    // Get latest data and thresholds
-    $latestData = $sensorModel->getLatestData();
+    // Get device configuration from database
+    $stmt = $pdo->prepare("SELECT device_id, relay_status, relay_mode, temp_min, temp_max, humidity_min, humidity_max FROM devices WHERE device_id = ? LIMIT 1");
+    $stmt->execute([$deviceId]);
+    $device = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    // Return config response
+    if (!$device) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Device not found']);
+        exit;
+    }
+    
+    // Return config response with boolean relay_status
     echo json_encode([
         'success' => true,
-        'data' => [
-            'device_id' => $deviceId,
-            'current' => [
-                'temperature' => $latestData ? $latestData['temperature'] : null,
-                'humidity' => $latestData ? $latestData['humidity'] : null,
-                'relay_status' => $latestData ? $latestData['relay_status'] : 'OFF'
-            ],
-            'thresholds' => [
-                'temperature' => [
-                    'max' => $thresholds['temperature'],
-                    'min' => 20.0 // Default minimum temperature
-                ],
-                'humidity' => [
-                    'max' => $thresholds['humidity'],
-                    'min' => 40.0 // Default minimum humidity
-                ]
-            ]
-        ]
+        'device_id' => $deviceId,
+        'temp_min' => (float)$device['temp_min'],
+        'temp_max' => (float)$device['temp_max'],
+        'humidity_min' => (float)$device['humidity_min'],
+        'humidity_max' => (float)$device['humidity_max'],
+        'relay_status' => (bool)$device['relay_status'],
+        'relay_mode' => $device['relay_mode'] ?? 'auto'
     ]);
     
 } catch (Exception $e) {

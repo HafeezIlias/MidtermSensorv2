@@ -56,51 +56,60 @@ try {
     $existingDevice = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if ($existingDevice) {
-        // Device already registered
+        // Device already exists
         echo json_encode([
             'success' => true,
-            'registered' => true,
+            'registered' => false,
             'message' => 'Device already registered',
-            'device' => $existingDevice
+            'device' => [
+                'device_id' => $existingDevice['device_id'],
+                'user' => $existingDevice['user'],
+                'display_text' => $existingDevice['display_text'],
+                'relay_status' => (bool)$existingDevice['relay_status'],
+                'temp_min' => (float)$existingDevice['temp_min'],
+                'temp_max' => (float)$existingDevice['temp_max'],
+                'humidity_min' => (float)$existingDevice['humidity_min'],
+                'humidity_max' => (float)$existingDevice['humidity_max']
+            ]
         ]);
     } else {
-        // Register new device with default values
-        $defaultUser = $user ?: 'Unknown User';
-        $defaultDisplayText = $displayText ?: $deviceId;
-        $defaultRelayStatus = false; // OFF
-        $defaultTempMin = 20.0;
-        $defaultTempMax = 30.0;
-        $defaultHumidityMin = 40.0;
-        $defaultHumidityMax = 70.0;
-        
+        // Insert new device with default values
         $stmt = $pdo->prepare("
             INSERT INTO devices 
-            (device_id, user, display_text, relay_status, temp_min, temp_max, humidity_min, humidity_max, created_at, updated_at) 
+            (device_id, user, display_text, relay_status, temp_min, temp_max, humidity_min, humidity_max, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
         
         $success = $stmt->execute([
-            $deviceId, 
-            $defaultUser, 
-            $defaultDisplayText, 
-            $defaultRelayStatus, 
-            $defaultTempMin, 
-            $defaultTempMax, 
-            $defaultHumidityMin, 
-            $defaultHumidityMax
+            $deviceId,
+            'ESP32_User',
+            $deviceId,
+            false, // Default relay status as boolean
+            20.0,  // Default temp_min
+            30.0,  // Default temp_max
+            40.0,  // Default humidity_min
+            70.0   // Default humidity_max
         ]);
         
         if ($success) {
             // Get the newly registered device
             $stmt = $pdo->prepare("SELECT device_id, user, display_text, relay_status, temp_min, temp_max, humidity_min, humidity_max FROM devices WHERE device_id = ? LIMIT 1");
             $stmt->execute([$deviceId]);
-            $newDevice = $stmt->fetch(PDO::FETCH_ASSOC);
+            $registeredDevice = $stmt->fetch(PDO::FETCH_ASSOC);
             
             echo json_encode([
                 'success' => true,
-                'registered' => false,
                 'message' => 'Device registered successfully',
-                'device' => $newDevice
+                'device' => [
+                    'device_id' => $registeredDevice['device_id'],
+                    'user' => $registeredDevice['user'],
+                    'display_text' => $registeredDevice['display_text'],
+                    'relay_status' => (bool)$registeredDevice['relay_status'],
+                    'temp_min' => (float)$registeredDevice['temp_min'],
+                    'temp_max' => (float)$registeredDevice['temp_max'],
+                    'humidity_min' => (float)$registeredDevice['humidity_min'],
+                    'humidity_max' => (float)$registeredDevice['humidity_max']
+                ]
             ]);
         } else {
             http_response_code(500);

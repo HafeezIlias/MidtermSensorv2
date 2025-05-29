@@ -32,7 +32,13 @@ try {
     $deviceId = isset($_GET['device_id']) ? $_GET['device_id'] : null;
     $temperature = isset($_GET['temperature']) ? floatval($_GET['temperature']) : null;
     $humidity = isset($_GET['humidity']) ? floatval($_GET['humidity']) : null;
-    $relayStatus = isset($_GET['relay_status']) ? ($_GET['relay_status'] === 'true' ? 'ON' : 'OFF') : 'OFF';
+    $relayStatus = false;
+    if (isset($_GET['relay_status'])) {
+        $relayStatusParam = $_GET['relay_status'];
+        if ($relayStatusParam === 'true' || $relayStatusParam === '1' || strtoupper($relayStatusParam) === 'ON') {
+            $relayStatus = true;
+        }
+    }
     
     if ($deviceId === null || $temperature === null || $humidity === null) {
         http_response_code(400);
@@ -57,13 +63,12 @@ try {
     // Return success response
     echo json_encode([
         'success' => true,
-        'message' => 'Sensor data updated successfully',
-        'data' => [
-            'device_id' => $deviceId,
-            'temperature' => $temperature,
-            'humidity' => $humidity,
-            'relay_status' => $relayStatus
-        ]
+        'message' => 'Sensor data inserted successfully',
+        'device_id' => $deviceId,
+        'temperature' => $temperature,
+        'humidity' => $humidity,
+        'relay_status' => $relayStatus,
+        'timestamp' => date('Y-m-d H:i:s')
     ]);
     
 } catch (Exception $e) {
