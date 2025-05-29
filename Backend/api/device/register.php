@@ -53,9 +53,29 @@ try {
         $displayText = isset($input['display_text']) ? trim($input['display_text']) : null;
     }
     
+    // Additional space handling and validation
+    // Remove extra spaces and handle empty strings after trimming
+    if ($deviceId !== null) {
+        $deviceId = preg_replace('/\s+/', ' ', $deviceId); // Replace multiple spaces with single space
+        $deviceId = trim($deviceId); // Trim again after space normalization
+        if ($deviceId === '') $deviceId = null; // Treat empty string as null
+    }
+    
+    if ($user !== null) {
+        $user = preg_replace('/\s+/', ' ', $user); // Replace multiple spaces with single space
+        $user = trim($user); // Trim again after space normalization
+        if ($user === '') $user = null; // Treat empty string as null
+    }
+    
+    if ($displayText !== null) {
+        $displayText = preg_replace('/\s+/', ' ', $displayText); // Replace multiple spaces with single space
+        $displayText = trim($displayText); // Trim again after space normalization
+        if ($displayText === '') $displayText = null; // Treat empty string as null
+    }
+    
     if (!$deviceId) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Missing device_id parameter']);
+        echo json_encode(['success' => false, 'error' => 'Missing or invalid device_id parameter']);
         exit;
     }
     
