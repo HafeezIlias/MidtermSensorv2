@@ -55,7 +55,7 @@ try {
     $stmt = $pdo->prepare("
         SELECT device_id, user, display_text, relay_mode, 
                temp_min, temp_max, humidity_min, humidity_max, 
-               created_at, updated_at 
+               created_at, updated_at,relay_status 
         FROM devices 
         WHERE device_id = ? 
         LIMIT 1
