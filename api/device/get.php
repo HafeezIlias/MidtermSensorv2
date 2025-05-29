@@ -50,20 +50,10 @@ try {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Missing device_id parameter']);
         exit;
-    }
-    
-    // Check if relay_mode column exists, if not add it
-    try {
-        $stmt = $pdo->prepare("SELECT relay_mode FROM devices WHERE device_id = ? LIMIT 1");
-        $stmt->execute([$deviceId]);
-    } catch (PDOException $e) {
-        // Column doesn't exist, add it
-        $pdo->exec("ALTER TABLE devices ADD COLUMN relay_mode VARCHAR(10) DEFAULT 'auto'");
-    }
-    
+    }  
     // Get device data
     $stmt = $pdo->prepare("
-        SELECT device_id, user, display_text, relay_status, relay_mode, 
+        SELECT device_id, user, display_text, relay_mode, 
                temp_min, temp_max, humidity_min, humidity_max, 
                created_at, updated_at 
         FROM devices 

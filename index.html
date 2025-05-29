@@ -909,6 +909,15 @@
             .then(data => {
                 if (data.success) {
                     showStatus(data.message);
+                    
+                    // Update relay status if provided in response
+                    if (data.relay_status !== undefined) {
+                        document.getElementById('relay-value').textContent = data.status || (data.relay_status ? 'ON' : 'OFF');
+                        const toggleSwitch = document.getElementById('relay-toggle');
+                        if (toggleSwitch) {
+                            toggleSwitch.checked = data.relay_status;
+                        }
+                    }
                 } else {
                     showStatus('Error changing relay mode: ' + (data.error || 'Unknown error'));
                 }
@@ -937,6 +946,9 @@
             const toggleSwitch = document.getElementById('relay-toggle');
             const newStatus = toggleSwitch.checked;
             
+            // Disable toggle during request
+            toggleSwitch.disabled = true;
+            
             fetch(`api/set_relay.php`, {
                 method: 'POST',
                 headers: {
@@ -957,9 +969,20 @@
                 return response.json();
             })
             .then(data => {
+                console.log('Relay toggle response:', data); // Debug log
+                
                 if (data.success) {
+                    // Update UI with actual status from server
                     document.getElementById('relay-value').textContent = data.status;
+                    toggleSwitch.checked = data.relay_status;
                     showStatus(data.message);
+                    
+                    // Log for debugging
+                    console.log('Relay status updated:', {
+                        status: data.status,
+                        relay_status: data.relay_status,
+                        database_value: data.database_value
+                    });
                 } else {
                     showStatus('Error toggling relay: ' + (data.error || 'Unknown error'));
                     // Reset the toggle on error
@@ -971,15 +994,13 @@
                 showStatus('Error toggling relay: ' + error.message);
                 // Reset the toggle on error
                 toggleSwitch.checked = !toggleSwitch.checked;
+            })
+            .finally(() => {
+                // Re-enable toggle
+                if (relayMode === 'manual') {
+                    toggleSwitch.disabled = false;
+                }
             });
-        }
-
-        // Toggle relay - LEGACY FUNCTION (keeping for compatibility)
-        function toggleRelay() {
-            // Redirect to new toggle switch function
-            const toggleSwitch = document.getElementById('relay-toggle');
-            toggleSwitch.checked = !toggleSwitch.checked;
-            toggleRelaySwitch();
         }
 
         // Auto-refresh functions
@@ -1079,6 +1100,14 @@
                 startAutoRefresh();
             }
         });
+
+        // Toggle relay - LEGACY FUNCTION (keeping for compatibility)
+        function toggleRelay() {
+            // Redirect to new toggle switch function
+            const toggleSwitch = document.getElementById('relay-toggle');
+            toggleSwitch.checked = !toggleSwitch.checked;
+            toggleRelaySwitch();
+        }
     </script>
 </body>
 </html>

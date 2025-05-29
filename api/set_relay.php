@@ -101,9 +101,16 @@ try {
         $success = $stmt->execute([$mode, $deviceId]);
         
         if ($success) {
+            // Get updated device info to return current relay status
+            $stmt = $pdo->prepare("SELECT relay_status, relay_mode FROM devices WHERE device_id = ?");
+            $stmt->execute([$deviceId]);
+            $updatedDevice = $stmt->fetch(PDO::FETCH_ASSOC);
+            
             echo json_encode([
                 'success' => true,
                 'mode' => $mode,
+                'relay_status' => (bool)$updatedDevice['relay_status'],
+                'status' => $updatedDevice['relay_status'] ? 'ON' : 'OFF',
                 'device_id' => $deviceId,
                 'message' => "Relay mode set to {$mode} for device {$deviceId}"
             ]);
@@ -115,7 +122,7 @@ try {
     }
     
     // Handle relay status change
-    if ($status) {
+    if ($status !== null && $status !== '') {
         // Validate status
         if (!in_array(strtoupper($status), ['ON', 'OFF', 'TRUE', 'FALSE', '1', '0'])) {
             http_response_code(400);
@@ -130,8 +137,11 @@ try {
             $relayStatus = true;
         }
         
-        // Check current relay mode
-        $currentMode = $device['relay_mode'] ?? 'auto';
+        // Re-fetch device to get current mode
+        $stmt = $pdo->prepare("SELECT relay_mode FROM devices WHERE device_id = ?");
+        $stmt->execute([$deviceId]);
+        $currentDevice = $stmt->fetch(PDO::FETCH_ASSOC);
+        $currentMode = $currentDevice['relay_mode'] ?? 'auto';
         
         if ($currentMode === 'auto') {
             http_response_code(400);
@@ -142,24 +152,38 @@ try {
             exit;
         }
         
-        // Update relay status (only in manual mode)
+        // Update relay status (only in manual mode) - use boolean for database
         $stmt = $pdo->prepare("UPDATE devices SET relay_status = ?, updated_at = NOW() WHERE device_id = ?");
         $success = $stmt->execute([$relayStatus, $deviceId]);
         
         if (!$success) {
             http_response_code(500);
-            echo json_encode(['error' => 'Failed to update relay status']);
+            echo json_encode(['error' => 'Failed to update relay status in database']);
             exit;
         }
+        
+        // Verify the update worked
+        $stmt = $pdo->prepare("SELECT relay_status FROM devices WHERE device_id = ?");
+        $stmt->execute([$deviceId]);
+        $verifyResult = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($verifyResult === false) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to verify relay status update']);
+            exit;
+        }
+        
+        $actualStatus = (bool)$verifyResult['relay_status'];
         
         // Return success response
         echo json_encode([
             'success' => true,
-            'status' => $relayStatus ? 'ON' : 'OFF',
-            'relay_status' => $relayStatus,
+            'status' => $actualStatus ? 'ON' : 'OFF',
+            'relay_status' => $actualStatus,
             'mode' => $currentMode,
             'device_id' => $deviceId,
-            'message' => "Relay set to " . ($relayStatus ? 'ON' : 'OFF') . " for device {$deviceId} (Manual mode)"
+            'database_value' => $verifyResult['relay_status'],
+            'message' => "Relay set to " . ($actualStatus ? 'ON' : 'OFF') . " for device {$deviceId} (Manual mode)"
         ]);
         exit;
     }
