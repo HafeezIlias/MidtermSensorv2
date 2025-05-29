@@ -69,7 +69,8 @@ try {
     $existingDevice = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if ($existingDevice) {
-        // Device already exists
+        // Device already exists - this is a successful response
+        http_response_code(200);
         echo json_encode([
             'success' => true,
             'registered' => false,
@@ -110,6 +111,8 @@ try {
             $stmt->execute([$deviceId]);
             $registeredDevice = $stmt->fetch(PDO::FETCH_ASSOC);
             
+            // New device registered successfully
+            http_response_code(201); // 201 Created for new resource
             echo json_encode([
                 'success' => true,
                 'message' => 'Device registered successfully',
