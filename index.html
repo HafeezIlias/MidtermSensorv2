@@ -176,6 +176,163 @@
             transform: none;
         }
 
+        /* Modern Toggle Switch Styles */
+        .relay-control-section {
+            margin: 20px 0;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 80px;
+            height: 40px;
+            margin: 10px 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #ccc;
+            transition: 0.4s;
+            border-radius: 40px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 32px;
+            width: 32px;
+            left: 4px;
+            bottom: 4px;
+            background: white;
+            transition: 0.4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(40px);
+        }
+
+        .toggle-switch input:disabled + .toggle-slider {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .toggle-switch input:disabled + .toggle-slider:before {
+            cursor: not-allowed;
+        }
+
+        .relay-mode-selector {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .mode-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            flex: 1;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .mode-option:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .mode-option input[type="radio"] {
+            margin: 0;
+        }
+
+        .mode-option.active {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .relay-status-display {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 15px 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .status-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .status-label {
+            font-size: 0.9rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .status-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .mode-indicator {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .mode-indicator.manual {
+            background: rgba(245, 124, 0, 0.1);
+            color: #f57c00;
+        }
+
+        .toggle-control {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 15px 0;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .toggle-label {
+            font-size: 0.9rem;
+            color: #666;
+            font-weight: 500;
+        }
+
         .charts-section {
             background: white;
             border-radius: 15px;
@@ -318,12 +475,43 @@
             <div class="card">
                 <div class="card-header">
                     <div class="card-icon">🔌</div>
-                    <div class="card-title">Relay Status</div>
+                    <div class="card-title">Relay Control</div>
                 </div>
-                <div class="card-value" id="relay-value">OFF</div>
-                <button class="relay-button" id="toggle-relay" onclick="toggleRelay()">
-                    Toggle Relay
-                </button>
+                
+                <!-- Relay Status Display -->
+                <div class="relay-status-display">
+                    <div class="status-info">
+                        <div class="status-label">Current Status</div>
+                        <div class="status-value" id="relay-value">OFF</div>
+                    </div>
+                    <div class="mode-indicator" id="mode-indicator">Auto</div>
+                </div>
+                
+                <!-- Mode Selection -->
+                <div class="relay-mode-selector">
+                    <label class="mode-option" id="auto-mode-option">
+                        <input type="radio" name="relay-mode" value="auto" checked onchange="changeRelayMode('auto')">
+                        <span>🤖 Auto</span>
+                    </label>
+                    <label class="mode-option" id="manual-mode-option">
+                        <input type="radio" name="relay-mode" value="manual" onchange="changeRelayMode('manual')">
+                        <span>👤 Manual</span>
+                    </label>
+                </div>
+                
+                <!-- Toggle Control -->
+                <div class="toggle-control">
+                    <span class="toggle-label">Relay Switch</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="relay-toggle" onchange="toggleRelaySwitch()" disabled>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                
+                <!-- Mode Info -->
+                <div id="relay-mode-info" style="font-size: 0.8rem; color: #888; margin-top: 10px; text-align: center;">
+                    Relay controlled by temperature/humidity thresholds
+                </div>
             </div>
         </div>
 
@@ -388,6 +576,7 @@
         let autoRefreshEnabled = true;
         let refreshIntervalTime = 5000;
         let lastDataCount = 0;
+        let relayMode = 'auto';
 
         // Initialize chart
         function initChart() {
@@ -492,6 +681,14 @@
                         `Range: ${deviceThresholds.temp_min}°C to ${deviceThresholds.temp_max}°C`;
                     document.getElementById('humidity-threshold').textContent = 
                         `Range: ${deviceThresholds.humidity_min}% to ${deviceThresholds.humidity_max}%`;
+                    
+                    // Load relay mode
+                    const deviceRelayMode = data.device.relay_mode || 'auto';
+                    relayMode = deviceRelayMode;
+                    
+                    // Update UI based on relay mode
+                    document.querySelector(`input[name="relay-mode"][value="${deviceRelayMode}"]`).checked = true;
+                    changeRelayMode(deviceRelayMode);
                 }
             })
             .catch(error => console.error('Error loading thresholds:', error));
@@ -651,6 +848,12 @@
                         humidityStatusEl.className = `card-status ${humidityStatus.status}`;
                     }
                     
+                    // Update toggle switch state
+                    const toggleSwitch = document.getElementById('relay-toggle');
+                    if (toggleSwitch) {
+                        toggleSwitch.checked = relayStatus;
+                    }
+                    
                     // Update last update time
                     document.getElementById('last-update-time').textContent = new Date().toLocaleTimeString();
                 }
@@ -658,18 +861,81 @@
             .catch(error => showStatus('Error updating data'));
         }
 
-        // Toggle relay - FIXED
-        function toggleRelay() {
+        // Relay mode functions
+        function changeRelayMode(mode) {
             if (!currentDevice) {
                 showStatus('Please select a device first');
                 return;
             }
             
-            const button = document.getElementById('toggle-relay');
-            button.disabled = true;
+            relayMode = mode;
             
-            const currentStatus = document.getElementById('relay-value').textContent === 'ON';
-            const newStatus = !currentStatus;
+            // Update UI
+            const modeIndicator = document.getElementById('mode-indicator');
+            const toggleSwitch = document.getElementById('relay-toggle');
+            const autoModeOption = document.getElementById('auto-mode-option');
+            const manualModeOption = document.getElementById('manual-mode-option');
+            const modeInfo = document.getElementById('relay-mode-info');
+            
+            // Update mode option styling
+            autoModeOption.classList.remove('active');
+            manualModeOption.classList.remove('active');
+            
+            if (mode === 'manual') {
+                modeIndicator.textContent = 'Manual';
+                modeIndicator.className = 'mode-indicator manual';
+                manualModeOption.classList.add('active');
+                toggleSwitch.disabled = false;
+                modeInfo.textContent = 'Manual control enabled - use toggle switch';
+                modeInfo.style.color = '#f57c00';
+            } else {
+                modeIndicator.textContent = 'Auto';
+                modeIndicator.className = 'mode-indicator';
+                autoModeOption.classList.add('active');
+                toggleSwitch.disabled = true;
+                modeInfo.textContent = 'Relay controlled by temperature/humidity thresholds';
+                modeInfo.style.color = '#888';
+            }
+            
+            // Send mode change to server
+            fetch(`api/set_relay.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `device_id=${encodeURIComponent(currentDevice)}&mode=${mode}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatus(data.message);
+                } else {
+                    showStatus('Error changing relay mode: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Relay mode change error:', error);
+                showStatus('Error changing relay mode');
+            });
+        }
+
+        // New toggle switch function
+        function toggleRelaySwitch() {
+            if (!currentDevice) {
+                showStatus('Please select a device first');
+                return;
+            }
+            
+            if (relayMode !== 'manual') {
+                showStatus('Switch to Manual mode first');
+                // Reset the toggle
+                const toggleSwitch = document.getElementById('relay-toggle');
+                toggleSwitch.checked = !toggleSwitch.checked;
+                return;
+            }
+            
+            const toggleSwitch = document.getElementById('relay-toggle');
+            const newStatus = toggleSwitch.checked;
             
             fetch(`api/set_relay.php`, {
                 method: 'POST',
@@ -679,12 +945,10 @@
                 body: `device_id=${encodeURIComponent(currentDevice)}&status=${newStatus ? 'ON' : 'OFF'}`
             })
             .then(response => {
-                // Check if response is ok
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                // Check if response has content
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
                     throw new Error('Response is not JSON');
@@ -698,15 +962,24 @@
                     showStatus(data.message);
                 } else {
                     showStatus('Error toggling relay: ' + (data.error || 'Unknown error'));
+                    // Reset the toggle on error
+                    toggleSwitch.checked = !toggleSwitch.checked;
                 }
             })
             .catch(error => {
                 console.error('Relay toggle error:', error);
                 showStatus('Error toggling relay: ' + error.message);
-            })
-            .finally(() => {
-                button.disabled = false;
+                // Reset the toggle on error
+                toggleSwitch.checked = !toggleSwitch.checked;
             });
+        }
+
+        // Toggle relay - LEGACY FUNCTION (keeping for compatibility)
+        function toggleRelay() {
+            // Redirect to new toggle switch function
+            const toggleSwitch = document.getElementById('relay-toggle');
+            toggleSwitch.checked = !toggleSwitch.checked;
+            toggleRelaySwitch();
         }
 
         // Auto-refresh functions
