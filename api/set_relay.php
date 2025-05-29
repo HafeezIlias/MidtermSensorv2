@@ -87,22 +87,9 @@ try {
     }
     
     // Handle mode change
-    if ($mode && in_array($mode, ['auto', 'manual'])) {
-        // Check if relay_mode column exists, if not add it
-        try {
-            $stmt = $pdo->prepare("SELECT relay_mode FROM devices WHERE device_id = ? LIMIT 1");
-            $stmt->execute([$deviceId]);
-        } catch (PDOException $e) {
-            // Column doesn't exist, add it
-            $pdo->exec("ALTER TABLE devices ADD COLUMN relay_mode VARCHAR(10) DEFAULT 'auto'");
-        }
+    if ($mode && in_array($mode, ['auto', 'manual'])) {        
         
-        $stmt = $pdo->prepare("UPDATE devices SET relay_mode = ?, updated_at = NOW() WHERE device_id = ?");
-        $success = $stmt->execute([$mode, $deviceId]);
-        
-        if ($success) {
-            // Get updated device info to return current relay status
-            $stmt = $pdo->prepare("SELECT relay_status, relay_mode FROM devices WHERE device_id = ?");
+            $stmt = $pdo->prepare("UPDATE devices SET relay_status, relay_mode FROM devices WHERE device_id = ?");
             $stmt->execute([$deviceId]);
             $updatedDevice = $stmt->fetch(PDO::FETCH_ASSOC);
             
@@ -114,12 +101,7 @@ try {
                 'device_id' => $deviceId,
                 'message' => "Relay mode set to {$mode} for device {$deviceId}"
             ]);
-        } else {
-            http_response_code(500);
-            echo json_encode(['error' => 'Failed to update relay mode']);
-        }
-        exit;
-    }
+             }
     
     // Handle relay status change
     if ($status !== null && $status !== '') {
